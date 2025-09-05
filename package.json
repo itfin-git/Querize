@@ -22,21 +22,19 @@
     "scripts": {
         "build:esm": "tsc --project tsconfig.esm.json",
         "build:cjs": "tsc --project tsconfig.cjs.json",
-        "build": "npm run build:esm && npm run build:cjs && npm run build:post1 && npm run build:post2",
         "build:post1": "node build.cjs --copy src/package.json.cjs dist/cjs/package.json && node build.cjs --copy src/index.cjs dist/cjs/index.cjs ",
         "build:post2": "node build.cjs --copy README.md dist/README.md",
         "clean": "node build.cjs --clean dist/cjs && node build.cjs --clean dist/esm",
         "watch": "tsc -w",
-        "check": "tsc --noEmit",
-        "pack:check": "npm pack --dry-run",
-        "publish": "npm publish"
+        "build": "npm run build:esm && npm run build:cjs && npm run build:post1 && npm run build:post2",
+        "check": "cd dist && npm pack --dry-run",
+        "preview": "cd dist && npm publish --dry-run",
+        "publish": "cd dist && npm publish"
     },
     "files": [ "dist/" ],
+    "private": true,
     "repository": {
         "type": "git",
         "url": "https://github.com/itfin-git/Querize"
-    },
-    "publishConfig": {
-        "access": "public"
     }
 }

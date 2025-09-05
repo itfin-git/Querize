@@ -1,18 +1,29 @@
 {
     "name": "querize",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "description": "Objective Query",
     "type": "module",
+    "sideEffects": false,
     "exports": {
         ".": {
-            "import":  "./esm/index.js",
-            "require": "./cjs/index.cjs",
-            "default": "./esm/index.js"
-        }
+            "import": {
+                "types" : "./esm/types/index.d.ts",
+                "default": "./esm/index.js"
+            },
+            "require": {
+                "types": "./cjs/types/index.d.ts",
+                "default": "./cjs/index.cjs"
+            },
+            "default": {
+                "types" : "./esm/types/index.d.ts",
+                "default": "./esm/index.js"
+            }
+        },
+        "./package.json": "./package.json"
     },
     "author": "lclasser",
     "license": "ISC",
-    "Keywords": [
+    "keywords": [
         "mysql",
         "maria",
         "mariadb",
@@ -21,5 +32,14 @@
         "sql",
         "objective",
         "orm"
-    ]
+    ],
+    "main": "cjs/index.cjs",
+    "module": "esm/index.js",
+    "engines": {
+        "node": ">=16"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/itfin-git/Querize"
+    }
 }
