@@ -1,0 +1,1 @@
+{"version":3,"file":"mq_const.d.ts","sourceRoot":"","sources":["../../../src/mq_const.ts"],"names":[],"mappings":"AAYA,yBAAiB,OAAO,CACxB;IACI,KAAY,UAAU;QAClB,KAAK,UAAU;QACf,SAAS,eAAe;QACxB,MAAM,SAAS;QACf,OAAO,YAAY;KACtB;IAED,KAAY,SAAS;QACjB,WAAW,MAAM;QACjB,UAAU,MAAM;QAChB,SAAS,MAAM;KAClB;IAEM,MAAM,IAAI;;;;;;;;KAShB,CAAC;CACL"}

@@ -1,0 +1,33 @@
+{
+    "name": "querize",
+    "version": "1.0.0",
+    "description": "Objective Query (ORM)",
+    "type": "module",
+    "author": "lclasser",
+    "license": "ISC",
+    "Keywords": [
+        "mysql",
+        "maria",
+        "mariadb",
+        "query",
+        "querize",
+        "sql",
+        "objective"
+    ],
+    "devDependencies": {
+        "mariadb": "^3.3.1",
+        "mysql2": "^3.14.4",
+        "typescript": "^5.9.2"
+    },
+    "scripts": {
+        "build:esm": "tsc --project tsconfig.esm.json",
+        "build:cjs": "tsc --project tsconfig.cjs.json",
+        "build": "npm run build:esm && npm run build:cjs && npm run build:post1 && npm run build:post2",
+        "build:post1": "node build.cjs --copy src/package.json.cjs dist/cjs/package.json && node build.cjs --copy src/index.cjs dist/cjs/index.cjs ",
+        "build:post2": "node build.cjs --copy README.md dist/README.md",
+        "clean": "node build.cjs --clean dist/cjs && node build.cjs --clean dist/esm",
+        "watch": "tsc -w",
+        "check": "tsc --noEmit"
+    },
+    "files": [ "dist/" ]
+}

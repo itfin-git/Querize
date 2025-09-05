@@ -1,0 +1,6 @@
+(x) - mariadb 제거
+- union 기능
+- persistent 기능
+- Create Table 기능
+(x) - ESM/CJS [ESM(ECMAScript Module:import), CJS(CommonJS:require())]
+- where 절에 subquery 기능
