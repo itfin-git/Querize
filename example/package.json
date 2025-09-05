@@ -6,7 +6,7 @@
   "dependencies": {
     "mariadb": "^3.4.5",
     "mysql2": "^3.14.4",
-    "querize": "file:../package/dist",
+    "querize": "file:../dist",
     "sequelize": "^6.37.7"
   }
 }
