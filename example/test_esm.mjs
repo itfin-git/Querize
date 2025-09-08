@@ -1,13 +1,11 @@
 
-import { Querize } from 'querize';
-// const Querize       = require('../build');
+import Querize from 'querize';
 
 Querize.setTrace(function(type, title, mesg) {
     console.log("Querize:", `${type}:${title}:${mesg}`);
 });
 
 const querize = new Querize('mariadb');
-// const querize = new Querize('mysql2');
 
 /*
 table: TBL_SCHOOL
