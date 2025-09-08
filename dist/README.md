@@ -85,24 +85,47 @@ querize.createPool({
 ## Connection Types
 
 ### Single Connection
+- **Behavior**: Creates a new connection for each query and closes it immediately after execution.  
+- **Flow**:  
+  SQL → execute → connect → query → disconnect → SQL → ...
+- **Notes**: Very simple, but repeatedly opening and closing connections can cause performance overhead.
 ```typescript
 const database = await querize.createConnect(options);
 ```
 
 ### Connection Pool
+- **Behavior**: Uses a connection pool where multiple queries can reuse existing connections.  
+- **Flow**:  
+  SQL → execute → connect → query → SQL → ...
+- **Notes**: More efficient for high-frequency queries since connections are reused instead of created and destroyed each time.
 ```typescript
 const database = await querize.createPool(options);
 ```
 
 ### Cluster
+- **Behavior**: Manages multiple database instances and selectively connects to one depending on the query.  
+- **Flow**:  
+  SQL → execute → connect [choose DB] → query → SQL → ...
+- **Notes**: Useful in multi-database environments for load balancing or failover scenarios.
 ```typescript
 const database = await querize.createCluster([option1, option2, ...]);
 ```
 
-### Query-only (No persistent connection)
+### Query-only (for Debug)
+- **Notes**: Method to inspect the SQL string of a query.
 ```typescript
 const database = await querize.createQuery();
 ```
+
+## Transaction Types
+
+### `Singleton`
+- **Behavior**: Each connection handles only a single SQL statement at a time.  
+- **Use case**: Simplifies query execution when only one statement per connection is required.
+
+### `Transaction`
+- **Behavior**: A single connection is used for multiple statements until an explicit `COMMIT` or `ROLLBACK` is executed.  
+- **Use case**: Ensures atomic operations and consistency across multiple queries.
 
 ## Usage Examples
 
