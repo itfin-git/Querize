@@ -116,14 +116,14 @@ export namespace MQWhere
         var query = '';
         var str_qry;
         var apos;
+        var acnt = 0;
 
         if( values == null || values.length <= 0 )
             return '';
         
-        if( values.length > 1 ) query += '(';
         for( apos=0; apos< values.length; apos++ ) {
             var argv = values[apos];
-            if( argv == null ) break;
+            if( argv == null ) { continue; }
 
             if( Array.isArray(argv) == true ) { // array
                 str_qry = MQWhere.way_array(argv); 
@@ -137,13 +137,13 @@ export namespace MQWhere
             }
 
             if( str_qry.length > 0 ) {
-                if( apos > 0 )
-                    query += " AND ";
+                if( acnt > 0 ) query += " AND ";
                 query += str_qry;
+                acnt++;
             }
             // console.log("query:", query);
         }
-        if( values.length > 1 ) query += ')';
+        if( acnt > 1 ) { query = '(' + query + ')'; }
         return query;
     }
 

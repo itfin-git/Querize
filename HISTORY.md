@@ -1,3 +1,7 @@
+1.0.5 / 2025-11-03
+========================
+* Fix crash when where() argument is null
+
 1.0.0 / 2025-09-05
 ========================
 * Initial release

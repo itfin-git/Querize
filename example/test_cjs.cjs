@@ -96,7 +96,7 @@ querize.createQuery().then(function(database) {
             'order.user_id' : '= users.id'
         }
     )
-    .where({'id' : 'john'})
+    .where(null, null, {'id' : 'john'})
     .select()
     .execute();
 })
