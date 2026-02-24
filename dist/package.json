@@ -1,6 +1,6 @@
 {
     "name": "querize",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Objective Query",
     "type": "module",
     "sideEffects": false,
@@ -24,11 +24,11 @@
     "author": "lclasser",
     "license": "ISC",
     "keywords": [
+        "querize",
         "mysql",
         "maria",
         "mariadb",
         "query",
-        "querize",
         "sql",
         "objective",
         "orm"

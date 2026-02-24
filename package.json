@@ -1,16 +1,16 @@
 {
     "name": "querize",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "A query builder for SQL in Node.js",
     "type": "module",
     "author": "lclasser",
     "license": "ISC",
     "Keywords": [
+        "querize",
         "mysql",
         "maria",
         "mariadb",
         "query",
-        "querize",
         "sql",
         "objective"
     ],

@@ -29,4 +29,4 @@ export declare namespace DrvOracleDB {
     }
     export {};
 }
-//# sourceMappingURL=drv_oracle.d.ts.map
+//# sourceMappingURL=drv_oracledb.d.ts.map
