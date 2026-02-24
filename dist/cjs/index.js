@@ -1,5 +1,5 @@
 /*
-* Querize.js v1.0.5
+* Querize.js
 * Copyright (c) 2020 lClasser
 * SPDX-License-Identifier: MIT
 * @author lClasser

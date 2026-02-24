@@ -13,12 +13,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DrvMariaDB = void 0;
+exports.DrvOracleDB = void 0;
 const mq_const_js_1 = require("../mq_const.js");
 const mq_trace_js_1 = require("../mq_trace.js");
-const mariadb_1 = __importDefault(require("mariadb"));
-var DrvMariaDB;
-(function (DrvMariaDB) {
+const oracledb_1 = __importDefault(require("oracledb"));
+let _initialized = false;
+function _initOnce() {
+    if (_initialized)
+        return;
+    _initialized = true;
+    console.log("ORACLEDB.initOracleClient");
+    oracledb_1.default.initOracleClient();
+}
+_initOnce();
+var DrvOracleDB;
+(function (DrvOracleDB) {
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;
@@ -27,24 +36,13 @@ var DrvMariaDB;
                 return Promise.resolve(new Container(null, mq_const_js_1.MQConst.CONNECTION.CONNECTER, config));
                 break;
             case mq_const_js_1.MQConst.CONNECTION.POOLER:
-                return Promise.resolve(new Container(mariadb_1.default.createPool(config), mq_const_js_1.MQConst.CONNECTION.POOLER));
-                break;
-            case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
-                return Promise.resolve().then(function () {
-                    let cluster = mariadb_1.default.createPoolCluster();
-                    if (Array.isArray(config) != true) {
-                        config = [config];
-                    }
-                    config.forEach(function (option) {
-                        cluster.add(option.alias, option);
-                    });
-                    return new Container(cluster, mq_const_js_1.MQConst.CONNECTION.CLUSTER);
-                });
+                return oracledb_1.default.createPool(config)
+                    .then(function (Pool) { return new Container(Pool, mq_const_js_1.MQConst.CONNECTION.POOLER); });
                 break;
         }
         throw new Error(`unsupport type(${type}).`);
     }
-    DrvMariaDB.create = create;
+    DrvOracleDB.create = create;
     class Container {
         constructor(pool, type, config) {
             this.pool = pool;
@@ -54,33 +52,17 @@ var DrvMariaDB;
         getType() { return this.type; }
         getConnection(dbname, dbmode) {
             var self = this;
-            let next = null;
             switch (this.type) {
                 case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
-                    next = mariadb_1.default.createConnection(this.config).then(function (conn) {
+                    return oracledb_1.default.getConnection(this.config).then(function (conn) {
                         return new Connector(self, conn);
                     });
                     break;
                 case mq_const_js_1.MQConst.CONNECTION.POOLER:
-                    next = self.pool.getConnection()
+                    return self.pool.getConnection()
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });
-                    break;
-                case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
-                    next = self.pool.getConnection()
-                        .then(function (conn) {
-                        return new Connector(self, conn);
-                    });
-                    break;
-            }
-            if (next) {
-                return next.then(function (connector) {
-                    if (dbname != null) {
-                        return connector.query(`USE ${dbname}`).then(function () { return connector; });
-                    }
-                    return connector;
-                });
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));
         }
@@ -90,34 +72,42 @@ var DrvMariaDB;
                 case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
                     break;
                 case mq_const_js_1.MQConst.CONNECTION.POOLER:
-                    return this.pool.end();
-                case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
-                    return this.pool.end();
+                    // Force close after 10 seconds if it does not shut down normally.
+                    return this.pool.close(10);
             }
             return Promise.resolve();
         }
     }
-    DrvMariaDB.Container = Container;
+    DrvOracleDB.Container = Container;
     var _cid = 0;
     class Connector {
         constructor(owner, conn) {
             this.owner = owner;
             this.conn = conn;
             this.coid = ++_cid;
+            this.istr = false;
             mq_trace_js_1.MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: connected.`);
         }
         getId() { return this.coid.toString(); }
-        beginTransaction() { return this.conn.beginTransaction(); }
+        // 1. A transaction automatically starts when a DML(INSERT/UPDATE/DELETE/MERGE) statement is executed.
+        // 2. Use SET TRANSACTION – this will be handled later as an argument to beginTransaction().
+        beginTransaction() { this.istr = true; return Promise.resolve(); }
         query(sql) {
             mq_trace_js_1.MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
-            return this.conn.query(sql);
+            if (this.istr != true) {
+                // Use autoCommit when not in a transaction-function.
+                return this.conn.execute(sql, {}, { autoCommit: true });
+            }
+            return this.conn.execute(sql);
         }
         commit() {
             var self = this;
+            self.istr = false;
             return self.conn.commit().then(function () { self.close(); });
         }
         rollback() {
             var self = this;
+            self.istr = false;
             return self.conn.rollback().then(function () { self.close(); });
         }
         close() {
@@ -129,10 +119,9 @@ var DrvMariaDB;
                         break;
                     case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
                         mq_trace_js_1.MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[end].`);
-                        self.conn.end();
+                        self.conn.release();
                         break;
                     case mq_const_js_1.MQConst.CONNECTION.POOLER:
-                    case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
                         mq_trace_js_1.MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[release].`);
                         self.conn.release();
                         break;
@@ -140,8 +129,8 @@ var DrvMariaDB;
             });
         }
     }
-    DrvMariaDB.Connector = Connector;
+    DrvOracleDB.Connector = Connector;
     ;
-})(DrvMariaDB || (exports.DrvMariaDB = DrvMariaDB = {}));
+})(DrvOracleDB || (exports.DrvOracleDB = DrvOracleDB = {}));
 ;
-//# sourceMappingURL=drv_mariadb.js.map
+//# sourceMappingURL=drv_oracle.js.map

@@ -11,9 +11,18 @@
 'use strict';
 import { MQConst } from '../mq_const.js';
 import { MQTrace } from '../mq_trace.js';
-import NodeMysql2 from 'mysql2/promise';
-export var DrvMySQL;
-(function (DrvMySQL) {
+import OracleDB from 'oracledb';
+let _initialized = false;
+function _initOnce() {
+    if (_initialized)
+        return;
+    _initialized = true;
+    console.log("ORACLEDB.initOracleClient");
+    OracleDB.initOracleClient();
+}
+_initOnce();
+export var DrvOracleDB;
+(function (DrvOracleDB) {
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;
@@ -22,24 +31,13 @@ export var DrvMySQL;
                 return Promise.resolve(new Container(null, MQConst.CONNECTION.CONNECTER, config));
                 break;
             case MQConst.CONNECTION.POOLER:
-                return Promise.resolve(new Container(NodeMysql2.createPool(config), MQConst.CONNECTION.POOLER));
-                break;
-            case MQConst.CONNECTION.CLUSTER:
-                return Promise.resolve().then(function () {
-                    let cluster = NodeMysql2.createPoolCluster();
-                    if (Array.isArray(config) != true) {
-                        config = [config];
-                    }
-                    config.forEach(function (option) {
-                        cluster.add(option.alias, option);
-                    });
-                    return new Container(cluster, MQConst.CONNECTION.CLUSTER);
-                });
+                return OracleDB.createPool(config)
+                    .then(function (Pool) { return new Container(Pool, MQConst.CONNECTION.POOLER); });
                 break;
         }
         throw new Error(`unsupport type(${type}).`);
     }
-    DrvMySQL.create = create;
+    DrvOracleDB.create = create;
     class Container {
         pool;
         type;
@@ -51,34 +49,18 @@ export var DrvMySQL;
         }
         getType() { return this.type; }
         getConnection(dbname, dbmode) {
-            let self = this;
-            let next = null;
+            var self = this;
             switch (this.type) {
                 case MQConst.CONNECTION.CONNECTER:
-                    next = NodeMysql2.createConnection(this.config).then(function (conn) {
+                    return OracleDB.getConnection(this.config).then(function (conn) {
                         return new Connector(self, conn);
                     });
                     break;
                 case MQConst.CONNECTION.POOLER:
-                    next = self.pool.getConnection()
+                    return self.pool.getConnection()
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });
-                    break;
-                case MQConst.CONNECTION.CLUSTER:
-                    next = self.pool.getConnection()
-                        .then(function (conn) {
-                        return new Connector(self, conn);
-                    });
-                    break;
-            }
-            if (next) {
-                return next.then(function (connector) {
-                    if (dbname != null) {
-                        return connector.query(`USE ${dbname}`).then(function () { return connector; });
-                    }
-                    return connector;
-                });
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));
         }
@@ -88,37 +70,46 @@ export var DrvMySQL;
                 case MQConst.CONNECTION.CONNECTER:
                     break;
                 case MQConst.CONNECTION.POOLER:
-                    return this.pool.end();
-                case MQConst.CONNECTION.CLUSTER:
-                    return this.pool.end();
+                    // Force close after 10 seconds if it does not shut down normally.
+                    return this.pool.close(10);
             }
             return Promise.resolve();
         }
     }
-    DrvMySQL.Container = Container;
+    DrvOracleDB.Container = Container;
     var _cid = 0;
     class Connector {
         owner;
         conn;
+        istr; // is-transaction
         coid;
         constructor(owner, conn) {
             this.owner = owner;
             this.conn = conn;
             this.coid = ++_cid;
+            this.istr = false;
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: connected.`);
         }
         getId() { return this.coid.toString(); }
-        beginTransaction() { return this.conn.beginTransaction(); }
+        // 1. A transaction automatically starts when a DML(INSERT/UPDATE/DELETE/MERGE) statement is executed.
+        // 2. Use SET TRANSACTION – this will be handled later as an argument to beginTransaction().
+        beginTransaction() { this.istr = true; return Promise.resolve(); }
         query(sql) {
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
+            if (this.istr != true) {
+                // Use autoCommit when not in a transaction-function.
+                return this.conn.execute(sql, {}, { autoCommit: true });
+            }
             return this.conn.execute(sql);
         }
         commit() {
             var self = this;
+            self.istr = false;
             return self.conn.commit().then(function () { self.close(); });
         }
         rollback() {
             var self = this;
+            self.istr = false;
             return self.conn.rollback().then(function () { self.close(); });
         }
         close() {
@@ -130,10 +121,9 @@ export var DrvMySQL;
                         break;
                     case MQConst.CONNECTION.CONNECTER:
                         MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[end].`);
-                        self.conn.end();
+                        self.conn.release();
                         break;
                     case MQConst.CONNECTION.POOLER:
-                    case MQConst.CONNECTION.CLUSTER:
                         MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[release].`);
                         self.conn.release();
                         break;
@@ -141,8 +131,8 @@ export var DrvMySQL;
             });
         }
     }
-    DrvMySQL.Connector = Connector;
+    DrvOracleDB.Connector = Connector;
     ;
-})(DrvMySQL || (DrvMySQL = {}));
+})(DrvOracleDB || (DrvOracleDB = {}));
 ;
-//# sourceMappingURL=drv_mysql2.js.map
+//# sourceMappingURL=drv_oracle.js.map

@@ -33,14 +33,7 @@ export var MQDatabase;
         }
         transaction(dbname, dbmode) {
             var self = this;
-            return self.container.getConnection(dbname, dbmode)
-                .then(function (connector) {
-                if (dbname != null) {
-                    return connector.query(`USE ${dbname}`).then(function () { return connector; });
-                }
-                return connector;
-            })
-                .then(function (connector) {
+            return self.container.getConnection(dbname, dbmode).then(function (connector) {
                 MQTrace.log(`[C:${connector.getId()}] ${MQConst.NAME[self.type]}-TRANSACTION: capture.`);
                 return connector.beginTransaction().then(function () {
                     return new MQQuery.Class(self, connector, {

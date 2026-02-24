@@ -9,15 +9,25 @@
 * @preserve
 */
 'use strict';
-import {MQDriver}   from './index';
-import {MQConst}    from '../mq_const.js';
-import {MQTrace}    from '../mq_trace.js';
-import NodeMysql2   from 'mysql2/promise';
+import {MQDriver}  from './index';
+import {MQConst}   from '../mq_const.js';
+import {MQTrace}   from '../mq_trace.js';
+import OracleDB    from 'oracledb';
 
-export namespace DrvMySQL
+let _initialized = false;
+function _initOnce() {
+    if( _initialized ) return;
+    _initialized = true;
+
+    console.log("ORACLEDB.initOracleClient");
+    OracleDB.initOracleClient();
+}
+_initOnce();
+
+export namespace DrvOracleDB
 {
-    type TypeContainer = NodeMysql2.Connection | NodeMysql2.Pool | NodeMysql2.PoolCluster;
-    type TypeConnect   = NodeMysql2.Connection | NodeMysql2.PoolConnection;
+    type TypeContainer = OracleDB.Connection | OracleDB.Pool;
+    type TypeConnect   = OracleDB.Connection;
 
     var _tid: number = 0;
     export function create(type: MQConst.CONNECTION, config: MQDriver.Option|MQDriver.Option[]) {
@@ -27,21 +37,8 @@ export namespace DrvMySQL
             return Promise.resolve(new Container(null, MQConst.CONNECTION.CONNECTER, config));
             break;
         case MQConst.CONNECTION.POOLER:
-            return Promise.resolve(
-                new Container(NodeMysql2.createPool(config as NodeMysql2.PoolOptions), MQConst.CONNECTION.POOLER)
-            );
-            break;
-        case MQConst.CONNECTION.CLUSTER:
-            return Promise.resolve().then(function() {
-                let cluster = NodeMysql2.createPoolCluster();
-                if( Array.isArray(config) != true ) {
-                    config = [config];
-                }
-                config.forEach(function(option) {
-                    cluster.add(option.alias, option);
-                });
-                return new Container(cluster, MQConst.CONNECTION.CLUSTER);
-            });
+            return OracleDB.createPool(config as OracleDB.PoolAttributes)
+            .then(function(Pool) { return new Container(Pool, MQConst.CONNECTION.POOLER); });
             break;
         }
         throw new Error(`unsupport type(${type}).`);
@@ -60,32 +57,17 @@ export namespace DrvMySQL
 
         getType() { return this.type; }
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector> {
-            let self = this;
-            let next = null;
+            var self = this;
             switch( this.type ) {
             case MQConst.CONNECTION.CONNECTER:
-                next = NodeMysql2.createConnection(this.config as NodeMysql2.ConnectionOptions).then(function(conn) {
+                return OracleDB.getConnection(this.config as OracleDB.PoolAttributes).then(function(conn) {
                     return new Connector(self, conn);
                 });
                 break;
             case MQConst.CONNECTION.POOLER:
-                next = (self.pool as NodeMysql2.Pool).getConnection()
+                return (self.pool as OracleDB.Pool).getConnection()
                 .then(function(conn) {
                     return new Connector(self, conn);
-                });
-                break;
-            case MQConst.CONNECTION.CLUSTER:
-                next = (self.pool as NodeMysql2.PoolCluster).getConnection()
-                .then(function(conn) {
-                    return new Connector(self, conn);
-                });
-                break;
-            }
-
-            if( next ) {
-                return next.then(function(connector) {
-                    if( dbname != null ) { return connector.query(`USE ${dbname}`).then(function() { return connector; }) }
-                    return connector;
                 });
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));
@@ -96,9 +78,8 @@ export namespace DrvMySQL
             case MQConst.CONNECTION.CONNECTER:
                 break;
             case MQConst.CONNECTION.POOLER:
-                return (this.pool as NodeMysql2.Pool).end();
-            case MQConst.CONNECTION.CLUSTER:
-                return (this.pool as NodeMysql2.PoolCluster).end();
+                // Force close after 10 seconds if it does not shut down normally.
+                return (this.pool as OracleDB.Pool).close(10);
             }
             return Promise.resolve();
         }
@@ -109,29 +90,39 @@ export namespace DrvMySQL
         public readonly owner!: MQDriver.Container;
         public readonly conn!: TypeConnect;
 
+        public istr!: Boolean; // is-transaction
         public coid: number;
 
         constructor(owner: any, conn: TypeConnect) {
             this.owner = owner;
             this.conn = conn;
             this.coid = ++_cid;
+            this.istr = false;
 
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: connected.`);
         }
         
         getId() { return this.coid.toString(); }
-        beginTransaction(): Promise<any> { return this.conn.beginTransaction(); }
+        // 1. A transaction automatically starts when a DML(INSERT/UPDATE/DELETE/MERGE) statement is executed.
+        // 2. Use SET TRANSACTION – this will be handled later as an argument to beginTransaction().
+        beginTransaction(): Promise<any> { this.istr = true; return Promise.resolve(); }
         query(sql: string): Promise<any> {
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
+            if( this.istr != true ) {
+                // Use autoCommit when not in a transaction-function.
+                return this.conn.execute(sql, {}, { autoCommit: true });
+            }
             return this.conn.execute(sql);
         }
 
         commit(): Promise<any> {
             var self = this;
+            self.istr = false;
             return self.conn.commit().then(function() { self.close(); });
         }
         rollback(): Promise<any> {
             var self = this;
+            self.istr = false;
             return self.conn.rollback().then(function() { self.close(); });
         }
         close(): Promise<any> {
@@ -143,12 +134,11 @@ export namespace DrvMySQL
                     break;
                 case MQConst.CONNECTION.CONNECTER:
                     MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[end].`);
-                    (self.conn as NodeMysql2.Connection).end();
+                    (self.conn as OracleDB.Connection).release();
                     break;
                 case MQConst.CONNECTION.POOLER:
-                case MQConst.CONNECTION.CLUSTER:
                     MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[release].`);
-                    (self.conn as NodeMysql2.PoolConnection).release();
+                    (self.conn as OracleDB.Connection).release();
                     break;
                 }
             });

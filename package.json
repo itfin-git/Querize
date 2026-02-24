@@ -1,6 +1,6 @@
 {
     "name": "querize",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "A query builder for SQL in Node.js",
     "type": "module",
     "author": "lclasser",
@@ -15,8 +15,10 @@
         "objective"
     ],
     "devDependencies": {
+        "@types/oracledb": "^6.10.1",
         "mariadb": "^3.3.1",
         "mysql2": "^3.14.4",
+        "oracledb": "^6.10.0",
         "typescript": "^5.9.2"
     },
     "scripts": {
@@ -31,7 +33,9 @@
         "preview": "cd dist && npm publish --dry-run",
         "publish": "cd dist && npm publish"
     },
-    "files": [ "dist/" ],
+    "files": [
+        "dist/"
+    ],
     "private": true,
     "repository": {
         "type": "git",

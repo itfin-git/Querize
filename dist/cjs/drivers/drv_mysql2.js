@@ -53,23 +53,34 @@ var DrvMySQL;
         }
         getType() { return this.type; }
         getConnection(dbname, dbmode) {
-            var self = this;
+            let self = this;
+            let next = null;
             switch (this.type) {
                 case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
-                    return promise_1.default.createConnection(this.config).then(function (conn) {
+                    next = promise_1.default.createConnection(this.config).then(function (conn) {
                         return new Connector(self, conn);
                     });
                     break;
                 case mq_const_js_1.MQConst.CONNECTION.POOLER:
-                    return self.pool.getConnection()
+                    next = self.pool.getConnection()
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });
+                    break;
                 case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
-                    return self.pool.getConnection()
+                    next = self.pool.getConnection()
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });
+                    break;
+            }
+            if (next) {
+                return next.then(function (connector) {
+                    if (dbname != null) {
+                        return connector.query(`USE ${dbname}`).then(function () { return connector; });
+                    }
+                    return connector;
+                });
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));
         }

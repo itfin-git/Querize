@@ -61,21 +61,31 @@ export namespace DrvMariaDB
         getType() { return this.type; }
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector> {
             var self = this;
+            let next = null;
             switch( this.type ) {
             case MQConst.CONNECTION.CONNECTER:
-                return NodeMaria.createConnection(this.config as NodeMaria.ConnectionConfig).then(function(conn) {
+                next = NodeMaria.createConnection(this.config as NodeMaria.ConnectionConfig).then(function(conn) {
                     return new Connector(self, conn);
                 });
                 break;
             case MQConst.CONNECTION.POOLER:
-                return (self.pool as NodeMaria.Pool).getConnection()
+                next = (self.pool as NodeMaria.Pool).getConnection()
                 .then(function(conn) {
                     return new Connector(self, conn);
                 });
+                break;
             case MQConst.CONNECTION.CLUSTER:
-                return (self.pool as NodeMaria.PoolCluster).getConnection()
+                next = (self.pool as NodeMaria.PoolCluster).getConnection()
                 .then(function(conn) {
                     return new Connector(self, conn);
+                });
+                break;
+            }
+            
+            if( next ) {
+                return next.then(function(connector) {
+                    if( dbname != null ) { return connector.query(`USE ${dbname}`).then(function() { return connector; }) }
+                    return connector;
                 });
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));

@@ -51,34 +51,34 @@ querize.createQuery().then(function(database) {
     Database.singleton().then(function(_query) {
         return _query.table('transactions', 't')
         .left('accounts', 'a', {
-        'a.user_id'     : 'tester',
-        'a.account_id'  : '= t.account_id',
-        'a.account_type': ['SAVINGS','ASSET'],
+            'a.user_id'     : 'tester',
+            'a.account_id'  : '= t.account_id',
+            'a.account_type': ['SAVINGS','ASSET'],
         })
         .where(
-        // User condition
-        { 't.user_id': 'tester' },
+            // User condition
+            { 't.user_id': 'tester' },
 
-        // Date range
-        { 't.date': '>= "2025-01-01"' },
-        { 't.date': '<= "2025-01-31"' },
+            // Date range
+            { 't.date': '>= "2025-01-01"' },
+            { 't.date': '<= "2025-01-31"' },
 
-        // Account check (include NULL)
-        {
-            'a.account_id'  : ['= t.account_id', _query.literal('IS NULL')],
-            'a.account_type': ['SAVINGS','ASSET', _query.literal('IS NULL')],
-        },
+            // Account check (include NULL)
+            {
+                'a.account_id'  : ['= t.account_id', _query.literal('IS NULL')],
+                'a.account_type': ['SAVINGS','ASSET', _query.literal('IS NULL')],
+            },
         )
         .order_by('t.date', 't.time', 't.description')
         .select([
-        'a.account_name   AS Account',
-        't.currency       AS Currency',
-        't.amount         AS Amount',
-        't.description    AS Description',
-        't.date           AS Date',
-        't.time           AS Time',
-        't.category_code  AS CategoryCode',
-        't.memo           AS Memo',
+            'a.account_name   AS Account',
+            't.currency       AS Currency',
+            't.amount         AS Amount',
+            't.description    AS Description',
+            't.date           AS Date',
+            't.time           AS Time',
+            't.category_code  AS CategoryCode',
+            't.memo           AS Memo',
         ])
         .execute();
     });
