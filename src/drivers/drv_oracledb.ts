@@ -15,19 +15,24 @@ import {MQTrace}   from '../mq_trace.js';
 import OracleDB    from 'oracledb';
 
 let _initialized = false;
-function _initOnce() {
-    if( _initialized ) return;
-    _initialized = true;
-
-    console.log("ORACLEDB.initOracleClient");
-    OracleDB.initOracleClient();
-}
-_initOnce();
 
 export namespace DrvOracleDB
 {
     type TypeContainer = OracleDB.Connection | OracleDB.Pool;
     type TypeConnect   = OracleDB.Connection;
+
+    export function initialize(options?: OracleDB.InitialiseOptions) {
+        if( _initialized ) return;
+        _initialized = true;
+
+        console.log("ORACLEDB.initOracleClient");
+        if( options === undefined ) {
+            OracleDB.initOracleClient();
+        }
+        else {
+            OracleDB.initOracleClient(options);
+        }
+    }
 
     var _tid: number = 0;
     export function create(type: MQConst.CONNECTION, config: MQDriver.Option|MQDriver.Option[]) {

@@ -3,7 +3,8 @@ import { MQDatabase } from './mq_database.js';
 type MQOption = MQDriver.Option;
 export declare class Querize {
     driver: string;
-    constructor(driver: string);
+    constructor(driver: string, doptions: object);
+    initialize(options?: Object): Promise<any>;
     createQuery(): Promise<MQDatabase.Class>;
     createConnect(option: MQOption | MQOption[]): Promise<MQDatabase.Class>;
     createPool(option: MQOption | MQOption[]): Promise<MQDatabase.Class>;

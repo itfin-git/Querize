@@ -26,6 +26,7 @@ export declare namespace MQDriver {
         query: (sql: string) => Promise<any>;
         close: () => Promise<any>;
     }
+    function initialize(driver: string, options?: Object): Promise<any>;
     function create(type: MQConst.CONNECTION, driver: string, config?: Option | Option[]): Promise<MQDriver.Container>;
 }
 //# sourceMappingURL=index.d.ts.map

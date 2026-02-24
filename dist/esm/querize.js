@@ -15,8 +15,11 @@ import { MQConst } from './mq_const.js';
 import { MQDatabase } from './mq_database.js';
 export class Querize {
     driver;
-    constructor(driver) {
+    constructor(driver, doptions) {
         this.driver = driver;
+    }
+    initialize(options) {
+        return MQDriver.initialize(this.driver, options);
     }
     createQuery() {
         MQTrace.log(`PHONY: create.`);

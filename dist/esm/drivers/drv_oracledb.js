@@ -13,16 +13,21 @@ import { MQConst } from '../mq_const.js';
 import { MQTrace } from '../mq_trace.js';
 import OracleDB from 'oracledb';
 let _initialized = false;
-function _initOnce() {
-    if (_initialized)
-        return;
-    _initialized = true;
-    console.log("ORACLEDB.initOracleClient");
-    OracleDB.initOracleClient();
-}
-_initOnce();
 export var DrvOracleDB;
 (function (DrvOracleDB) {
+    function initialize(options) {
+        if (_initialized)
+            return;
+        _initialized = true;
+        console.log("ORACLEDB.initOracleClient");
+        if (options === undefined) {
+            OracleDB.initOracleClient();
+        }
+        else {
+            OracleDB.initOracleClient(options);
+        }
+    }
+    DrvOracleDB.initialize = initialize;
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;

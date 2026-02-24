@@ -1,6 +1,6 @@
 {
     "name": "querize",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "Objective Query",
     "type": "module",
     "sideEffects": false,

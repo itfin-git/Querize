@@ -18,16 +18,21 @@ const mq_const_js_1 = require("../mq_const.js");
 const mq_trace_js_1 = require("../mq_trace.js");
 const oracledb_1 = __importDefault(require("oracledb"));
 let _initialized = false;
-function _initOnce() {
-    if (_initialized)
-        return;
-    _initialized = true;
-    console.log("ORACLEDB.initOracleClient");
-    oracledb_1.default.initOracleClient();
-}
-_initOnce();
 var DrvOracleDB;
 (function (DrvOracleDB) {
+    function initialize(options) {
+        if (_initialized)
+            return;
+        _initialized = true;
+        console.log("ORACLEDB.initOracleClient");
+        if (options === undefined) {
+            oracledb_1.default.initOracleClient();
+        }
+        else {
+            oracledb_1.default.initOracleClient(options);
+        }
+    }
+    DrvOracleDB.initialize = initialize;
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;

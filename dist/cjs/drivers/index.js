@@ -63,12 +63,19 @@ var MQDriver;
             try {
                 return yield Promise.resolve(`${`./drv_${name}.js`}`).then(s => __importStar(require(s)));
             }
-            catch (e) {
+            catch (err) {
                 console.warn(`Unsupport library: ${name} (Please refer to the npm page.)`);
-                throw e;
+                throw err;
             }
         });
     }
+    function initialize(driver, options) {
+        return bring(driver).then(function (library) {
+            let nmsp = Object.keys(library)[0];
+            return library[nmsp].initialize && library[nmsp].initialize(options);
+        });
+    }
+    MQDriver.initialize = initialize;
     function create(type, driver, config) {
         // console.log("type  :", type);
         // console.log("driver:", driver);

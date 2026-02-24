@@ -17,8 +17,11 @@ const mq_trace_js_1 = require("./mq_trace.js");
 const mq_const_js_1 = require("./mq_const.js");
 const mq_database_js_1 = require("./mq_database.js");
 class Querize {
-    constructor(driver) {
+    constructor(driver, doptions) {
         this.driver = driver;
+    }
+    initialize(options) {
+        return index_js_1.MQDriver.initialize(this.driver, options);
     }
     createQuery() {
         mq_trace_js_1.MQTrace.log(`PHONY: create.`);

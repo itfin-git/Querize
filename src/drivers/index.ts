@@ -45,10 +45,17 @@ export namespace MQDriver
         try {
             return await import(`./drv_${name}.js`);
         }
-        catch (e) {
+        catch(err) {
             console.warn(`Unsupport library: ${name} (Please refer to the npm page.)`);
-            throw e;
+            throw err;
         }
+    }
+
+    export function initialize(driver: string, options?: Object): Promise<any> {
+        return bring(driver).then(function(library) {
+            let nmsp = Object.keys(library)[0];
+            return library[nmsp].initialize && library[nmsp].initialize(options);
+        });
     }
 
     export function create(type: MQConst.CONNECTION, driver: string, config?: Option|Option[]): Promise<MQDriver.Container> {

@@ -4,6 +4,7 @@ import OracleDB from 'oracledb';
 export declare namespace DrvOracleDB {
     type TypeContainer = OracleDB.Connection | OracleDB.Pool;
     type TypeConnect = OracleDB.Connection;
+    export function initialize(options?: OracleDB.InitialiseOptions): void;
     export function create(type: MQConst.CONNECTION, config: MQDriver.Option | MQDriver.Option[]): Promise<Container>;
     export class Container implements MQDriver.Container {
         pool: TypeContainer | null;

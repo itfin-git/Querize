@@ -1,6 +1,6 @@
 {
     "name": "querize",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "A query builder for SQL in Node.js",
     "type": "module",
     "author": "lclasser",

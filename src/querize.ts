@@ -19,8 +19,12 @@ type MQOption = MQDriver.Option;
 export class Querize {
     driver: string;
 
-    constructor(driver: string, ) {
+    constructor(driver: string, doptions: object) {
         this.driver = driver;
+    }
+
+    initialize(options?: Object): Promise<any> {
+        return MQDriver.initialize(this.driver, options);
     }
 
     createQuery(): Promise<MQDatabase.Class> {
