@@ -18,6 +18,7 @@ INSERT INTO `TBL_STUDENT` (`stdid`, `schid`, `name`, `address`) VALUES (1, 1, 'A
 INSERT INTO `TBL_STUDENT` (`stdid`, `schid`, `name`, `address`) VALUES (3, 2, 'Carol',   'B-201'), (4, 2, 'Dave',    'B-202');
 */
 
+querize.generateConfig('createConnect').then(config => console.log("oracle-config:", config));
 querize.initialize({
     libDir: "C:\\Temp\\test\\oracle\\instantclient-basic-windows.x64-23.26.1.0.0\\instantclient_23_0",
 })
@@ -48,4 +49,8 @@ querize.initialize({
             });
         });
     });
+})
+.catch(err => {
+    console.log("error:", err);
+    console.log("==============================");
 });
