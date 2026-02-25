@@ -13,6 +13,7 @@ import {MQConst}    from '../mq_const.js';
 
 export namespace MQDriver
 {
+    /*
     export interface Option {
         alias : string,         // transaction,singleton 시 찾을 이름
         host : string,          // DB ip
@@ -25,7 +26,7 @@ export namespace MQDriver
         supportBigNumbers? : boolean,
         bigNumberStrings? : boolean,
         connectionLimit? : number,
-    };
+    }; */
 
     export interface Container {
         getType(): MQConst.CONNECTION,
@@ -51,14 +52,14 @@ export namespace MQDriver
         }
     }
 
-    export function initialize(driver: string, options?: Object): Promise<any> {
+    export function invokeFunction(driver: string, name: string, args?: any): Promise<any> {
         return bring(driver).then(function(library) {
             let nmsp = Object.keys(library)[0];
-            return library[nmsp].initialize && library[nmsp].initialize(options);
+            return library[nmsp][name] && library[nmsp][name](args);
         });
     }
 
-    export function create(type: MQConst.CONNECTION, driver: string, config?: Option|Option[]): Promise<MQDriver.Container> {
+    export function create(type: MQConst.CONNECTION, driver: string, config?: any): Promise<MQDriver.Container> {
         // console.log("type  :", type);
         // console.log("driver:", driver);
         // console.log("config:", config);

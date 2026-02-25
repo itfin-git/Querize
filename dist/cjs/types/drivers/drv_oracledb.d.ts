@@ -4,21 +4,51 @@ import OracleDB from 'oracledb';
 export declare namespace DrvOracleDB {
     type TypeContainer = OracleDB.Connection | OracleDB.Pool;
     type TypeConnect = OracleDB.Connection;
-    export function initialize(options?: OracleDB.InitialiseOptions): void;
-    export function create(type: MQConst.CONNECTION, config: MQDriver.Option | MQDriver.Option[]): Promise<Container>;
+    export function generateConfig(type?: string): {
+        libDir: string;
+        configDir: string;
+        errorUrl: string;
+        driverName: string;
+        poolAlias?: undefined;
+        user?: undefined;
+        password?: undefined;
+        connectString?: undefined;
+        poolMax?: undefined;
+        poolMin?: undefined;
+        poolIncrement?: undefined;
+        poolTimeout?: undefined;
+        poolPingInterval?: undefined;
+    } | {
+        poolAlias: string;
+        user: string;
+        password: string;
+        connectString: string;
+        poolMax: number;
+        poolMin: number;
+        poolIncrement: number;
+        poolTimeout: number;
+        poolPingInterval: number;
+        libDir?: undefined;
+        configDir?: undefined;
+        errorUrl?: undefined;
+        driverName?: undefined;
+    };
+    export function initialize(options?: OracleDB.InitialiseOptions): Promise<any>;
+    export function create(type: MQConst.CONNECTION, config: any): Promise<Container>;
     export class Container implements MQDriver.Container {
         pool: TypeContainer | null;
+        pools: TypeContainer[] | null;
         type: MQConst.CONNECTION;
-        config?: MQDriver.Option | MQDriver.Option[];
-        constructor(pool: TypeContainer | null, type: MQConst.CONNECTION, config?: MQDriver.Option | MQDriver.Option[]);
+        config?: any;
+        constructor(pool: TypeContainer | TypeContainer[] | null, type: MQConst.CONNECTION, config?: any);
         getType(): MQConst.CONNECTION;
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector>;
-        destory(): Promise<void>;
+        destory(): Promise<any>;
     }
     export class Connector implements MQDriver.Connector {
         readonly owner: MQDriver.Container;
         readonly conn: TypeConnect;
-        istr: Boolean;
+        isTR: Boolean;
         coid: number;
         constructor(owner: any, conn: TypeConnect);
         getId(): string;

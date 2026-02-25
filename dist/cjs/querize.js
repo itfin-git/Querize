@@ -21,7 +21,10 @@ class Querize {
         this.driver = driver;
     }
     initialize(options) {
-        return index_js_1.MQDriver.initialize(this.driver, options);
+        return index_js_1.MQDriver.invokeFunction(this.driver, 'initialize', options);
+    }
+    generateConfig(type) {
+        return index_js_1.MQDriver.invokeFunction(this.driver, 'generateConfig', type);
     }
     createQuery() {
         mq_trace_js_1.MQTrace.log(`PHONY: create.`);
@@ -32,6 +35,9 @@ class Querize {
     }
     createConnect(option) {
         mq_trace_js_1.MQTrace.log(`CONNECTER: create.`);
+        if (Array.isArray(option)) {
+            return Promise.reject(new Error('createConnect only 1-connection.'));
+        }
         return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.CONNECTER, this.driver, option)
             .then(function (container) {
             return new mq_database_js_1.MQDatabase.Class(container);

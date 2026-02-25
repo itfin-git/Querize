@@ -15,7 +15,7 @@ import {MQTrace}    from '../mq_trace.js';
 
 export namespace DrvQuery
 {
-    export function create(type: MQConst.CONNECTION, config: any) {
+    export function create(type: MQConst.CONNECTION, config: any) : Promise<Container> {
         return Promise.resolve(new Container(type));
     }
 
@@ -28,7 +28,7 @@ export namespace DrvQuery
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector> {
             return Promise.resolve(new Connector(this));
         }
-        destory() { return Promise.resolve(); }
+        destory() : Promise<any> { return Promise.resolve(); }
     }
 
     var _cid: number = 0;
@@ -43,14 +43,14 @@ export namespace DrvQuery
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: connected.`);
         }
         getId() { return this.coid.toString(); }
-        beginTransaction() { return Promise.resolve(); }
-        query(sql: string) { 
+        beginTransaction() : Promise<any> { return Promise.resolve(); }
+        query(sql: string) : Promise<any> { 
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
             return Promise.resolve();
         }
-        commit() { return Promise.resolve(); }
-        rollback() { return Promise.resolve(); }
-        close() {
+        commit() : Promise<any> { return Promise.resolve(); }
+        rollback() : Promise<any> { return Promise.resolve(); }
+        close() : Promise<any> {
             var self = this;
             MQTrace.log(`[C:${self.coid}] [${self.owner.getType()}}]: disconnected[end].`);
             return Promise.resolve();

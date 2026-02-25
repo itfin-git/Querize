@@ -19,6 +19,22 @@ const mq_trace_js_1 = require("../mq_trace.js");
 const mariadb_1 = __importDefault(require("mariadb"));
 var DrvMariaDB;
 (function (DrvMariaDB) {
+    function generateConfig() {
+        return {
+            alias: "local-mariadb", // transaction,singleton 시 찾을 이름
+            host: "127.0.0.1", // DB ip
+            user: "maria", // DB user
+            password: "password", // DB password
+            database: "test-db", // DB database
+            dateStrings: true,
+            checkDuplicate: false,
+            compress: true,
+            supportBigNumbers: true,
+            bigNumberStrings: false,
+            connectionLimit: 5,
+        };
+    }
+    DrvMariaDB.generateConfig = generateConfig;
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;

@@ -19,6 +19,22 @@ const mq_trace_js_1 = require("../mq_trace.js");
 const promise_1 = __importDefault(require("mysql2/promise"));
 var DrvMySQL;
 (function (DrvMySQL) {
+    function generateConfig() {
+        return {
+            alias: "local-mysql", // transaction,singleton 시 찾을 이름
+            host: "127.0.0.1", // DB ip
+            user: "mysql", // DB user
+            password: "password", // DB password
+            database: "test-db", // DB database
+            dateStrings: true,
+            checkDuplicate: false,
+            compress: true,
+            supportBigNumbers: true,
+            bigNumberStrings: false,
+            connectionLimit: 5,
+        };
+    }
+    DrvMySQL.generateConfig = generateConfig;
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;

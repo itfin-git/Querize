@@ -14,8 +14,6 @@ import {MQTrace}    from './mq_trace.js';
 import {MQConst}    from './mq_const.js';
 import {MQDatabase} from './mq_database.js';
 
-type MQOption = MQDriver.Option;
-
 export class Querize {
     driver: string;
 
@@ -24,7 +22,10 @@ export class Querize {
     }
 
     initialize(options?: Object): Promise<any> {
-        return MQDriver.initialize(this.driver, options);
+        return MQDriver.invokeFunction(this.driver, 'initialize', options);
+    }
+    generateConfig(type?: string): Promise<any> {
+        return MQDriver.invokeFunction(this.driver, 'generateConfig', type);
     }
 
     createQuery(): Promise<MQDatabase.Class> {
@@ -36,8 +37,12 @@ export class Querize {
         });
     }
 
-    createConnect(option : MQOption | MQOption[]): Promise<MQDatabase.Class> {
+    createConnect(option : any): Promise<MQDatabase.Class> {
         MQTrace.log(`CONNECTER: create.`);
+
+        if( Array.isArray(option) ) {
+            return Promise.reject(new Error('createConnect only 1-connection.'));
+        }
 
         return MQDriver.create(MQConst.CONNECTION.CONNECTER, this.driver, option)
         .then(function(container) {
@@ -45,7 +50,7 @@ export class Querize {
         });
     }
 
-    createPool(option : MQOption | MQOption[]): Promise<MQDatabase.Class> {
+    createPool(option : any): Promise<MQDatabase.Class> {
         MQTrace.log(`POOLER: create.`);
 
         return MQDriver.create(MQConst.CONNECTION.POOLER, this.driver, option)
@@ -54,7 +59,7 @@ export class Querize {
         });
     }
 
-    createCluster(option : MQOption | MQOption[]): Promise<MQDatabase.Class> {
+    createCluster(option : any): Promise<MQDatabase.Class> {
         MQTrace.log(`CLUSTER: create.`);
 
         return MQDriver.create(MQConst.CONNECTION.CLUSTER, this.driver, option)

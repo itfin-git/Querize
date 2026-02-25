@@ -1,3 +1,9 @@
+1.0.9 / 2026-02-25
+========================
+* Remove MQDriver.option and change its type to any.
+* Update oracledb to support multiple connection pools.
+* generateConfig() add. display for sample-config.
+
 1.0.8 / 2026-02-24
 ========================
 * Add Oracle Database driver

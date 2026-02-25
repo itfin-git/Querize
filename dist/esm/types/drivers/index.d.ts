@@ -1,18 +1,5 @@
 import { MQConst } from '../mq_const.js';
 export declare namespace MQDriver {
-    interface Option {
-        alias: string;
-        host: string;
-        user: string;
-        password: string;
-        database: string;
-        dateStrings?: boolean;
-        checkDuplicate?: boolean;
-        compress?: boolean;
-        supportBigNumbers?: boolean;
-        bigNumberStrings?: boolean;
-        connectionLimit?: number;
-    }
     interface Container {
         getType(): MQConst.CONNECTION;
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector>;
@@ -26,7 +13,7 @@ export declare namespace MQDriver {
         query: (sql: string) => Promise<any>;
         close: () => Promise<any>;
     }
-    function initialize(driver: string, options?: Object): Promise<any>;
-    function create(type: MQConst.CONNECTION, driver: string, config?: Option | Option[]): Promise<MQDriver.Container>;
+    function invokeFunction(driver: string, name: string, args?: any): Promise<any>;
+    function create(type: MQConst.CONNECTION, driver: string, config?: any): Promise<MQDriver.Container>;
 }
 //# sourceMappingURL=index.d.ts.map

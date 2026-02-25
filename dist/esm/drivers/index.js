@@ -11,7 +11,20 @@
 'use strict';
 export var MQDriver;
 (function (MQDriver) {
-    ;
+    /*
+    export interface Option {
+        alias : string,         // transaction,singleton 시 찾을 이름
+        host : string,          // DB ip
+        user : string,          // DB user
+        password : string,      // DB password
+        database : string,      // DB database
+        dateStrings? : boolean,
+        checkDuplicate? : boolean,
+        compress? : boolean,
+        supportBigNumbers? : boolean,
+        bigNumberStrings? : boolean,
+        connectionLimit? : number,
+    }; */
     ;
     ;
     async function bring(name) {
@@ -23,13 +36,13 @@ export var MQDriver;
             throw err;
         }
     }
-    function initialize(driver, options) {
+    function invokeFunction(driver, name, args) {
         return bring(driver).then(function (library) {
             let nmsp = Object.keys(library)[0];
-            return library[nmsp].initialize && library[nmsp].initialize(options);
+            return library[nmsp][name] && library[nmsp][name](args);
         });
     }
-    MQDriver.initialize = initialize;
+    MQDriver.invokeFunction = invokeFunction;
     function create(type, driver, config) {
         // console.log("type  :", type);
         // console.log("driver:", driver);

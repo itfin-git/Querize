@@ -14,6 +14,22 @@ import { MQTrace } from '../mq_trace.js';
 import NodeMysql2 from 'mysql2/promise';
 export var DrvMySQL;
 (function (DrvMySQL) {
+    function generateConfig() {
+        return {
+            alias: "local-mysql", // transaction,singleton 시 찾을 이름
+            host: "127.0.0.1", // DB ip
+            user: "mysql", // DB user
+            password: "password", // DB password
+            database: "test-db", // DB database
+            dateStrings: true,
+            checkDuplicate: false,
+            compress: true,
+            supportBigNumbers: true,
+            bigNumberStrings: false,
+            connectionLimit: 5,
+        };
+    }
+    DrvMySQL.generateConfig = generateConfig;
     var _tid = 0;
     function create(type, config) {
         let toid = ++_tid;

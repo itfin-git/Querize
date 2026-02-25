@@ -19,8 +19,24 @@ export namespace DrvMySQL
     type TypeContainer = NodeMysql2.Connection | NodeMysql2.Pool | NodeMysql2.PoolCluster;
     type TypeConnect   = NodeMysql2.Connection | NodeMysql2.PoolConnection;
 
+    export function generateConfig() {
+        return {
+            alias : "local-mysql",      // transaction,singleton 시 찾을 이름
+            host : "127.0.0.1",         // DB ip
+            user : "mysql",             // DB user
+            password : "password",      // DB password
+            database : "test-db",       // DB database
+            dateStrings : true,
+            checkDuplicate : false,
+            compress : true,
+            supportBigNumbers : true,
+            bigNumberStrings : false,
+            connectionLimit : 5,
+        };
+    }
+
     var _tid: number = 0;
-    export function create(type: MQConst.CONNECTION, config: MQDriver.Option|MQDriver.Option[]) {
+    export function create(type: MQConst.CONNECTION, config: any): Promise<Container> {
         let toid = ++_tid;
         switch( type ) {
         case MQConst.CONNECTION.CONNECTER:
@@ -37,7 +53,7 @@ export namespace DrvMySQL
                 if( Array.isArray(config) != true ) {
                     config = [config];
                 }
-                config.forEach(function(option) {
+                config.forEach(function(option: any) {
                     cluster.add(option.alias, option);
                 });
                 return new Container(cluster, MQConst.CONNECTION.CLUSTER);
@@ -50,9 +66,9 @@ export namespace DrvMySQL
     export class Container implements MQDriver.Container {
         pool: TypeContainer | null;
         type: MQConst.CONNECTION;
-        config?: MQDriver.Option | MQDriver.Option[];
+        config?: any;
 
-        constructor(pool: TypeContainer | null, type: MQConst.CONNECTION, config?: MQDriver.Option | MQDriver.Option[]) {
+        constructor(pool: TypeContainer | null, type: MQConst.CONNECTION, config?: any) {
             this.pool = pool;
             this.type = type;
             this.config = config;
@@ -90,7 +106,7 @@ export namespace DrvMySQL
             }
             return Promise.reject(new Error(`Unsupported connection type: ${self.type}`));
         }
-        destory() {
+        destory(): Promise<any> {
             switch( this.type ) {
             case MQConst.CONNECTION.PHONY:
             case MQConst.CONNECTION.CONNECTER:

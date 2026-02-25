@@ -4,15 +4,28 @@ import NodeMaria from 'mariadb';
 export declare namespace DrvMariaDB {
     type TypeContainer = NodeMaria.Connection | NodeMaria.Pool | NodeMaria.PoolCluster;
     type TypeConnect = NodeMaria.Connection | NodeMaria.PoolConnection;
-    export function create(type: MQConst.CONNECTION, config: MQDriver.Option | MQDriver.Option[]): Promise<Container>;
+    export function generateConfig(): {
+        alias: string;
+        host: string;
+        user: string;
+        password: string;
+        database: string;
+        dateStrings: boolean;
+        checkDuplicate: boolean;
+        compress: boolean;
+        supportBigNumbers: boolean;
+        bigNumberStrings: boolean;
+        connectionLimit: number;
+    };
+    export function create(type: MQConst.CONNECTION, config: any): Promise<Container>;
     export class Container implements MQDriver.Container {
         pool: TypeContainer | null;
         type: MQConst.CONNECTION;
-        config?: MQDriver.Option | MQDriver.Option[];
-        constructor(pool: TypeContainer | null, type: MQConst.CONNECTION, config?: MQDriver.Option | MQDriver.Option[]);
+        config?: any;
+        constructor(pool: TypeContainer | null, type: MQConst.CONNECTION, config?: any);
         getType(): MQConst.CONNECTION;
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector>;
-        destory(): Promise<void>;
+        destory(): Promise<any>;
     }
     export class Connector implements MQDriver.Connector {
         readonly owner: MQDriver.Container;
