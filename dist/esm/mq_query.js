@@ -178,18 +178,26 @@ export var MQQuery;
         group_by(...fields) {
             if (this.error != undefined)
                 return this;
-            this.groups = fields.flat();
+            this.groups = fields.flat(Infinity)
+                .filter(v => v !== undefined && v !== null)
+                .map(v => String(v));
             return this;
         }
         order_by(...fields) {
             if (this.error != undefined)
                 return this;
-            this.orders = fields.flat();
+            this.orders = fields.flat(Infinity)
+                .filter(v => v !== undefined && v !== null)
+                .map(v => String(v));
             return this;
         }
         select(...fields) {
-            if (this.error == undefined)
-                this.dml = MQQuery._sql_select(this, fields.flat());
+            if (this.error != undefined)
+                return this;
+            const flats = fields.flat(Infinity)
+                .filter(v => v !== undefined && v !== null)
+                .map(v => String(v));
+            this.dml = MQQuery._sql_select(this, flats);
             return this;
         }
         insert(fields, option) {

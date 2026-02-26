@@ -20,3 +20,9 @@
 
         - npm login
         - npm run publish
+
+- git
+    git commit -m "select arguments"
+    git tag -a v1.1.2 -m "select arguments"
+    git push origin main
+    git push origin v1.1.2

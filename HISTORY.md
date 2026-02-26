@@ -1,4 +1,9 @@
+1.1.2 / 2026-02-26
+========================
+* select 의 argument 를 1차원 배열로 만들어 처리
+
 1.1.1 / 2026-02-26
+========================
 * Add alias support to the database configuration when using poolCluster
 
 1.1.0 / 2026-02-26
