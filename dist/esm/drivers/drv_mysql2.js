@@ -82,7 +82,8 @@ export var DrvMySQL;
                     });
                     break;
                 case MQConst.CONNECTION.CLUSTER:
-                    next = self.pool.getConnection()
+                    const dbid = (`${dbname}.` || '') + (`${dbmode}` || '');
+                    next = self.pool.getConnection(`${dbid}*`)
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });

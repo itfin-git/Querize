@@ -35,10 +35,10 @@ export namespace DrvOracleDB
         case 'createPool':
         default:
             return {
-                poolAlias:        "dbname",
+                alias:            "dbname (poolAlias)",
+                connectString:    "127.0.0.1/ORCL",
                 user:             "oracle",
                 password:         "password",
-                connectString:    "127.0.0.1/ORCL",
                 poolMax:          10,	//4
                 poolMin:          0,	//0
                 poolIncrement:    1,	//1
@@ -72,7 +72,11 @@ export namespace DrvOracleDB
             break;
         case MQConst.CONNECTION.POOLER:
             if( Array.isArray(config) ) {
-                return Promise.all(config.map(function(cfg) { return OracleDB.createPool(cfg); }))
+                return Promise.all(config.map(function(cfg) {
+                    cfg.poolAlias = cfg.alias;
+                    delete cfg.alias;
+                    return OracleDB.createPool(cfg);
+                }))
                 .then(function(Pools) {
                     return new Container(Pools, MQConst.CONNECTION.POOLER);
                 });

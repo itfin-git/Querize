@@ -9,20 +9,20 @@ export declare namespace DrvOracleDB {
         configDir: string;
         errorUrl: string;
         driverName: string;
-        poolAlias?: undefined;
+        alias?: undefined;
+        connectString?: undefined;
         user?: undefined;
         password?: undefined;
-        connectString?: undefined;
         poolMax?: undefined;
         poolMin?: undefined;
         poolIncrement?: undefined;
         poolTimeout?: undefined;
         poolPingInterval?: undefined;
     } | {
-        poolAlias: string;
+        alias: string;
+        connectString: string;
         user: string;
         password: string;
-        connectString: string;
         poolMax: number;
         poolMin: number;
         poolIncrement: number;

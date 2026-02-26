@@ -1,3 +1,6 @@
+1.1.1 / 2026-02-26
+* Add alias support to the database configuration when using poolCluster
+
 1.1.0 / 2026-02-26
 ========================
 * Returns the query result in ResultSet format

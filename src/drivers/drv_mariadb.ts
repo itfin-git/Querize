@@ -91,7 +91,8 @@ export namespace DrvMariaDB
                 });
                 break;
             case MQConst.CONNECTION.CLUSTER:
-                next = (self.pool as NodeMaria.PoolCluster).getConnection()
+                const dbid = (`${dbname}.` || '') + (`${dbmode}` || '');
+                next = (self.pool as NodeMaria.PoolCluster).getConnection(`${dbid}*`)
                 .then(function(conn) {
                     return new Connector(self, conn);
                 });

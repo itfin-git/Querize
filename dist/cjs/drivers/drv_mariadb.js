@@ -84,7 +84,8 @@ var DrvMariaDB;
                     });
                     break;
                 case mq_const_js_1.MQConst.CONNECTION.CLUSTER:
-                    next = self.pool.getConnection()
+                    const dbid = (`${dbname}.` || '') + (`${dbmode}` || '');
+                    next = self.pool.getConnection(`${dbid}*`)
                         .then(function (conn) {
                         return new Connector(self, conn);
                     });

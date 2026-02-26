@@ -91,7 +91,8 @@ export namespace DrvMySQL
                 });
                 break;
             case MQConst.CONNECTION.CLUSTER:
-                next = (self.pool as NodeMysql2.PoolCluster).getConnection()
+                const dbid = (`${dbname}.` || '') + (`${dbmode}` || '');
+                next = (self.pool as NodeMysql2.PoolCluster).getConnection(`${dbid}*`)
                 .then(function(conn) {
                     return new Connector(self, conn);
                 });
