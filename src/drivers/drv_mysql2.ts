@@ -137,11 +137,26 @@ export namespace DrvMySQL
         
         getId() { return this.coid.toString(); }
         beginTransaction(): Promise<any> { return this.conn.beginTransaction(); }
-        query(sql: string): Promise<any> {
+        query(sql: string): Promise<MQDriver.ResultSet> {
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
-            return this.conn.execute(sql);
+            return this.conn.query(sql).then(function(result) {
+                // MariaDB는 [rows, fields] 형태 또는 ResultSetHeader 객체로 옴
+                const data = Array.isArray(result) ? result[0] : result;
+                if( Array.isArray(data) ) {
+                    return {
+                        affected: 0,
+                        rows: data,
+                        meta: result
+                    };
+                }
+                return {
+                    affected: data.affectedRows || 0,
+                    insertId: data.insertId,
+                    rows: [],
+                    meta: result
+                };
+            });
         }
-
         commit(): Promise<any> {
             var self = this;
             return self.conn.commit().then(function() { self.close(); });

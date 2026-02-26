@@ -9,7 +9,7 @@
 * @preserve
 */
 'use strict';
-import {MQDriver}  from './index';
+import {MQDriver}   from './index';
 import {MQConst}    from '../mq_const.js';
 import {MQTrace}    from '../mq_trace.js';
 import NodeMaria    from 'mariadb';
@@ -137,11 +137,26 @@ export namespace DrvMariaDB
         
         getId() { return this.coid.toString(); }
         beginTransaction(): Promise<any> { return this.conn.beginTransaction(); }
-        query(sql: string): Promise<any> {
+        query(sql: string): Promise<MQDriver.ResultSet> {
             MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
-            return this.conn.query(sql);
-        }
+            return this.conn.query(sql).then(function(result) {
+                if( Array.isArray(result) ) {
+                    return {
+                        affected: 0,
+                        rows: result || [],
+                        meta: result,
+                    };
+                }
 
+                // DML(INSERT, UPDATE, DELETE) 결과인 경우 (ResultSetHeader 객체)
+                return {
+                    affected: result.affectedRows || 0,
+                    insertId: result.insertId,
+                    rows: [],
+                    meta: result,
+                };
+            });
+        }
         commit(): Promise<any> {
             var self = this;
             return self.conn.commit().then(function() { self.close(); });

@@ -27,8 +27,8 @@ querize.createQuery().then(function(database) {
         .where({ vsvr_key : 'vsvr_key', })
         .select()
         .execute()
-        .then(function(rows) {
-            console.log("rows:", rows);
+        .then(function(result) {
+            console.log("result:", result);
         });
     })
     .then(function() {
@@ -37,8 +37,8 @@ querize.createQuery().then(function(database) {
         .where({ vsvr_key : 'vsvr_key', })
         .select()
         .execute()
-        .then(function(rows) {
-            console.log("rows:", rows);
+        .then(function(result) {
+            console.log("result:", result);
         });
     })
     .then(function() {

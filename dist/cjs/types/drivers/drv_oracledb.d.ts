@@ -53,7 +53,7 @@ export declare namespace DrvOracleDB {
         constructor(owner: any, conn: TypeConnect);
         getId(): string;
         beginTransaction(): Promise<any>;
-        query(sql: string): Promise<any>;
+        query(sql: string): Promise<MQDriver.ResultSet>;
         commit(): Promise<any>;
         rollback(): Promise<any>;
         close(): Promise<any>;

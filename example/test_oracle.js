@@ -18,18 +18,16 @@ INSERT INTO `TBL_STUDENT` (`stdid`, `schid`, `name`, `address`) VALUES (1, 1, 'A
 INSERT INTO `TBL_STUDENT` (`stdid`, `schid`, `name`, `address`) VALUES (3, 2, 'Carol',   'B-201'), (4, 2, 'Dave',    'B-202');
 */
 
-querize.generateConfig('createConnect').then(config => console.log("oracle-config:", config));
+querize.generateConfig('createPool').then(config => console.log("oracle-config:", config));
 querize.initialize({
     libDir: "C:\\Temp\\test\\oracle\\instantclient-basic-windows.x64-23.26.1.0.0\\instantclient_23_0",
 })
 .then(function() {
-    return querize.createConnect({
-        // alias : string,         // transaction,singleton 시 찾을 이름
-        host : "127.0.0.1",          // DB ip
-        user : "exuser",          // DB user
-        password : "exuser",      // DB password
-        database : "example",      // DB database
-        checkDuplicate: false,
+    return querize.createPool({
+        poolAlias: 'dbname',
+        user: 'oracle',
+        password: 'password',
+        connectString: '127.0.0.1/ORCL',
     })
     .then(function(database) {
         let query = null;

@@ -151,12 +151,19 @@ export var DrvOracleDB;
         // 2. Use SET TRANSACTION – this will be handled later as an argument to beginTransaction().
         beginTransaction() { this.isTR = true; return Promise.resolve(); }
         query(sql) {
-            MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}}]: query:`, sql);
-            if (this.isTR != true) {
-                // Use autoCommit when not in a transaction-function.
-                return this.conn.execute(sql, {}, { autoCommit: true });
-            }
-            return this.conn.execute(sql);
+            MQTrace.log(`[C:${this.coid}] [${this.owner.getType()}]: query:`, sql);
+            const options = {
+                outFormat: OracleDB.OUT_FORMAT_OBJECT,
+                autoCommit: this.isTR !== true,
+            };
+            return this.conn.execute(sql, {}, options).then(function (result) {
+                return {
+                    insertId: result.lastRowid,
+                    affected: result.rowsAffected || 0,
+                    rows: result.rows || [], // oracledb.OUT_FORMAT_OBJECT 설정 필수
+                    meta: result,
+                };
+            });
         }
         commit() {
             var self = this;

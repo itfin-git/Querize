@@ -1,3 +1,13 @@
+1.1.0 / 2026-02-26
+========================
+* Returns the query result in ResultSet format
+    {
+        insertId: any;    // (Optional) The last inserted ID in MariaDB/MySQL
+        affected: number; // Number of affected rows (INSERT, UPDATE, DELETE)
+        rows: any[];      // SELECT result (always returned as an array of objects)
+        meta: any;        // Original driver response (kept for reference if needed)
+    }
+
 1.0.9 / 2026-02-25
 ========================
 * Remove MQDriver.option and change its type to any.

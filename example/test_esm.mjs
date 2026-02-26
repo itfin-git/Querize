@@ -91,7 +91,7 @@ INSERT INTO `TBL_SCORE` (`stdid`, `clsid`, `score`) VALUES (1, 2, 85), (2, 2, 78
 
 */
 
-let Database = await querize.createConnect({
+let Database = await querize.createPool({
     // alias : string,         // transaction,singleton 시 찾을 이름
     host : "127.0.0.1",          // DB ip
     user : "exuser",          // DB user
@@ -99,7 +99,7 @@ let Database = await querize.createConnect({
     database : "example",      // DB database
     checkDuplicate: false,
 });
-console.log(`createConnect connected:`);
+console.log(`createPool connected:`);
 
 console.log(`#######################################################################################################:`);
 console.log(`# querize : Single-use connection; single query`);
@@ -135,21 +135,23 @@ console.log(`# querize : transaction`);
 
     let result;
     result = await query.table('tbl_student').where({stdid : 10}).select().execute();
-    console.log("student select1 schid:", result);
+    console.log("student select1 schid:", result.rows);
 
     result = await query.table('tbl_student').where({stdid : 10}).update({ schid : 10, }).execute();
-    console.log("student update1:", result.affectedRows);
+    console.log("student update1:", result.affected);
 
     result = await query.table('tbl_student').where({stdid : 10}).select().execute();
-    console.log("student select2 schid:", result[0].schid);
+    console.log("student select2 schid:", result.rows[0].schid);
 
     result = await query.table('tbl_student').where({stdid : 10}).update({ schid : 1, }).execute();
-    console.log("student update2:", result.affectedRows);
+    console.log("student update2:", result.affected);
 
     result = await query.table('tbl_student').where({stdid : 10}).select().execute();
-    console.log("student select3 schid:", result[0].schid);
+    console.log("student select3 schid:", result.rows[0].schid);
 
     await query.commit();
 }
 console.log(``);
 ;
+
+await Database.destroy();

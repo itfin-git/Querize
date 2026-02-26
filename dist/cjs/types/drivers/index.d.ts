@@ -13,6 +13,12 @@ export declare namespace MQDriver {
         query: (sql: string) => Promise<any>;
         close: () => Promise<any>;
     }
+    interface ResultSet {
+        insertId?: any;
+        affected: number;
+        rows: any[];
+        meta: any;
+    }
     function invokeFunction(driver: string, name: string, args?: any): Promise<any>;
     function create(type: MQConst.CONNECTION, driver: string, config?: any): Promise<MQDriver.Container>;
 }

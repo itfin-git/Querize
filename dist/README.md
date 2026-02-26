@@ -1,583 +1,755 @@
 # Querize.js
 
-A modern TypeScript/JavaScript query builder and database abstraction layer that provides a fluent interface for building and executing SQL queries across different database drivers.
+> **MySQL / MariaDB / Oracle** query builder for Node.js  
+> Promise-based · Fluent API · Connection Pool / Cluster · Transaction support
 
-## Features
+[![npm](https://img.shields.io/npm/v/querize)](https://www.npmjs.com/package/querize)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-- 🔥 **TypeScript Support** - Built with TypeScript for better type safety
-- 🚀 **Multiple Connection Types** - Support for single connections, connection pools, and clusters
-- 🔄 **Transaction Management** - Built-in transaction support with commit/rollback
-- 📝 **Query Builder** - Fluent API for building complex SQL queries
-- 🔌 **Driver Abstraction** - Pluggable driver system for different databases
-- 🎯 **Promise-based** - Modern async/await support
-- 🔒 **Database Locking** - Built-in support for named locks
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [initialize()](#initialize)
+- [Connection Modes](#connection-modes)
+  - [createConnect](#createconnect)
+  - [createPool](#createpool)
+  - [createCluster](#createcluster)
+- [Operation Modes](#operation-modes)
+  - [transaction()](#transaction)
+  - [singleton()](#singleton)
+- [Query API](#query-api)
+  - [Table / JOIN](#table--join)
+  - [WHERE](#where)
+  - [SELECT](#select)
+  - [INSERT](#insert)
+  - [UPDATE](#update)
+  - [DELETE](#delete)
+  - [Modifiers](#modifiers)
+  - [Sub-queries](#sub-queries)
+- [ResultSet](#resultset)
+- [Oracle Driver](#oracle-driver)
+- [Trace / Logging](#trace--logging)
+
+---
+
+## Overview
+
+Querize.js is a lightweight, promise-based SQL query builder for Node.js targeting MySQL, MariaDB, and Oracle databases.  
+It lets you compose queries through a fluent chaining API without writing raw SQL strings.
+
+```
+Querize → MQDatabase → MQQuery → MQWhere → execute()
+```
+
+---
 
 ## Installation
 
-### npm
 ```bash
+# Install Querize
 npm install querize
+
+# Install your database driver
+npm install mysql2      # MySQL
+npm install mariadb     # MariaDB
+npm install oracledb    # Oracle
 ```
 
-### yarn
+> Drivers are loaded dynamically — install only the one you need.
+
+---
+
+## Quick Start
+
+```javascript
+import { Querize } from 'querize';
+
+// 1. Create a Querize instance with your driver
+const qz = new Querize('mysql2'); // 'mysql2' | 'mariadb' | 'oracle'
+
+// 2. Initialize the driver (always recommended)
+await qz.initialize();
+
+// 3. Create a connection pool
+const Database = await qz.createPool({
+  alias:           'main',
+  host:            'localhost',
+  user:            'root',
+  password:        'password',
+  database:        'mydb',
+  connectionLimit: 10,
+});
+
+// 4. Run a query
+const query = await Database.singleton();
+const result = await query.table('users').where({ id: 1 }).select().execute();
+console.log(result.rows); // [{ id: 1, name: 'Alice', ... }]
+
+// 5. Shutdown
+await Database.destroy();
+```
+
+---
+
+## initialize()
+
+`qz.initialize(option?)` initializes the driver. Call it **once at application startup**, before creating any connection.
+
+**It is recommended to always call `initialize()` regardless of which driver you use.**  
+For mysql2 and mariadb, it resolves immediately with no side effects.  
+For Oracle, it sets up the Instant Client path at this stage.  
+This keeps your initialization flow consistent and makes driver swaps seamless.
+
+### Signature
+
+```typescript
+qz.initialize(option?: { libDir?: string }): Promise<void>
+```
+
+### Parameters
+
+| Parameter | Driver | Description |
+|-----------|--------|-------------|
+| `option.libDir` | Oracle only | Path to the Oracle Instant Client library. Required for Thick mode. |
+| _(none)_ | mysql2 / mariadb | Call with no arguments. Resolves immediately with no internal processing. |
+
+### Behavior by Driver
+
+| Driver | Behavior |
+|--------|----------|
+| `mysql2` | Resolves immediately. No initialization required. |
+| `mariadb` | Resolves immediately. No initialization required. |
+| `oracle` | Calls `oracledb.initOracleClient()` if `libDir` is provided (Thick mode). Otherwise runs in Thin mode. |
+
+### Examples
+
+```javascript
+import { Querize } from 'querize';
+
+// mysql2 / mariadb — call with no arguments
+const qz = new Querize('mysql2');
+await qz.initialize();
+const Database = await qz.createPool({ ... });
+
+// Oracle — Thin mode (no Instant Client required, oracledb v6+)
+const qz = new Querize('oracle');
+await qz.initialize();
+const Database = await qz.createPool({ ... });
+
+// Oracle — Thick mode (provide Instant Client path)
+const qz = new Querize('oracle');
+await qz.initialize({ libDir: '/oracle' });
+const Database = await qz.createPool({ ... });
+```
+
+> 💡 **Always call `initialize()` regardless of driver — it is the recommended pattern.**  
+> Even when using mysql2 or mariadb, the call is a no-op and exits immediately.  
+> Fix it in your app startup routine as shown below for portability:
+>
+> ```javascript
+> const qz = new Querize(process.env.DB_DRIVER);
+> await qz.initialize({ libDir: process.env.ORACLE_LIB_DIR });
+> // → mysql2/mariadb: libDir is ignored, resolves immediately
+> // → oracle: initializes in Thick mode
+> ```
+
+---
+
+## Connection Modes
+
+Choose how the `Querize` instance manages database connections. All three return `Promise<MQDatabase>`.
+
+### createConnect
+
+**Single direct connection.** Opens a new TCP connection for every operation and closes it when done.  
+Best suited for scripts, CLIs, and migration tools where connection overhead is not a concern.
+
+```javascript
+const Database = await qz.createConnect({
+  alias:    'main',
+  host:     'localhost',
+  user:     'dbuser',
+  password: 'secret',
+  database: 'mydb',
+});
+```
+
+> ⚠️ Avoid in web servers — each request opens and closes its own TCP connection, which is expensive under concurrent load.
+
+---
+
+### createPool
+
+**Connection pool.** Maintains a set of reusable connections. **Recommended for web servers and APIs.**
+
+```javascript
+const Database = await qz.createPool({
+  alias:           'main',
+  host:            'localhost',
+  user:            'dbuser',
+  password:        'secret',
+  database:        'mydb',
+  connectionLimit: 10,   // max simultaneous connections
+});
+```
+
+| Option | Description |
+|--------|-------------|
+| `alias` | Logical name used for cluster routing |
+| `host` | Database server hostname or IP |
+| `user` / `password` | Authentication credentials |
+| `database` | Default schema |
+| `connectionLimit` | Maximum pool size (recommended: 10–50) |
+| `dateStrings` | Return DATE/DATETIME columns as strings instead of JS Date objects |
+| `supportBigNumbers` | Handle BIGINT columns without precision loss |
+
+---
+
+### createCluster
+
+**Pool cluster.** Groups multiple pools (e.g. primary + replicas) behind a single database object.  
+Used for read/write splitting and high-availability setups. Each entry must have a unique `alias`.
+
+```javascript
+const Database = await qz.createCluster([
+  {
+    alias:           'MASTER',
+    host:            '10.0.0.1',
+    user:            'dbuser',
+    password:        'secret',
+    database:        'mydb',
+    connectionLimit: 5,
+  },
+  {
+    alias:           'SLAVE01',
+    host:            '10.0.0.2',
+    user:            'dbuser',
+    password:        'secret',
+    database:        'mydb',
+    connectionLimit: 10,
+  },
+]);
+```
+
+Pass `dbmode` to `transaction()` / `singleton()` to route to a specific node.
+
+```javascript
+const trx = await Database.transaction('mydb', 'MASTER');  // writes → MASTER
+const q   = await Database.singleton('mydb', 'SLAVE01');   // reads  → SLAVE01
+```
+
+---
+
+## Operation Modes
+
+Controls how connections are acquired and released during query execution.
+
+### transaction()
+
+Acquires a dedicated connection, executes `BEGIN`, and returns an `MQQuery` instance.  
+All subsequent queries through this object run on the **same connection inside the same transaction**.  
+You must call `commit()` or `rollback()` explicitly to end the transaction and release the connection.
+
+```javascript
+console.log(`# querize : transaction`);
+{
+  const query = await Database.transaction('example', 'master');
+
+  let result;
+
+  result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+  console.log('student select1 schid:', result.rows);
+
+  result = await query.table('tbl_student').where({ stdid: 10 }).update({ schid: 10 }).execute();
+  console.log('student update1:', result.affected);
+
+  result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+  console.log('student select2 schid:', result.rows[0].schid);
+
+  result = await query.table('tbl_student').where({ stdid: 10 }).update({ schid: 1 }).execute();
+  console.log('student update2:', result.affected);
+
+  result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+  console.log('student select3 schid:', result.rows[0].schid);
+
+  await query.commit();
+}
+```
+
+Always wrap in `try/catch` and call `rollback()` on error.
+
+```javascript
+const query = await Database.transaction('mydb', 'master');
+try {
+  await query.table('accounts').where({ id: 1 }).update({ balance: '= balance - 100' }).execute();
+  await query.table('accounts').where({ id: 2 }).update({ balance: '= balance + 100' }).execute();
+  await query.commit();
+} catch (err) {
+  await query.rollback();
+  throw err;
+}
+```
+
+**Signature**
+
+```typescript
+Database.transaction(dbname?: string, dbmode?: string): Promise<MQQuery>
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `dbname` | If provided, executes `USE <dbname>` immediately after connecting |
+| `dbmode` | Selects a specific cluster node by alias |
+
+---
+
+### singleton()
+
+Returns an `MQQuery` instance.  
+Each call to `execute()` **independently** acquires a connection, runs the SQL, and releases it back to the pool.  
+There is no persistent connection between calls. Use this for independent, non-transactional queries.
+
+```javascript
+const query = await Database.singleton();
+
+// Each execute() uses its own connection
+const result1 = await query.table('users').where({ active: 1 }).select().execute();
+const result2 = await query.table('orders').where({ user_id: 1 }).select().execute();
+
+console.log(result1.rows);
+console.log(result2.rows);
+```
+
+**Signature**
+
+```typescript
+Database.singleton(dbname?: string, dbmode?: string): Promise<MQQuery>
+```
+
+---
+
+## Query API
+
+### Table / JOIN
+
+```javascript
+query.table('users')                          // FROM users
+query.table('users', 'u')                     // FROM users u  (alias)
+
+query.table('users', 'u')
+     .inner('orders', 'o', { 'u.id': 'o.user_id' })   // INNER JOIN
+
+query.table('users', 'u')
+     .left('orders', 'o', { 'u.id': 'o.user_id' })    // LEFT OUTER JOIN
+
+query.table('users', 'u')
+     .right('orders', 'o', { 'u.id': 'o.user_id' })   // RIGHT OUTER JOIN
+```
+
+---
+
+### WHERE
+
+Pass a plain object to `where()`. Keys are column names, values are match conditions.
+
+```javascript
+// Equality
+query.table('users').where({ id: 1, active: 1 })
+// → WHERE (id = 1 AND active = 1)
+
+// Comparison operators — prefix the value with the operator
+query.table('orders').where({ amount: '> 1000' })
+// → WHERE (amount > 1000)
+
+// OR condition — use an array of objects
+query.table('users').where([{ status: 'active' }, { status: 'pending' }])
+// → WHERE ((status = 'active') OR (status = 'pending'))
+
+// IS NULL — use literal()
+query.table('users').where({ deleted_at: query.literal('IS NULL') })
+// → WHERE (deleted_at IS NULL)
+
+// AND / OR chaining
+const w = query.table('products').where({ category: 'electronics' });
+w.and({ price: '< 500' });
+w.or({ featured: 1 });
+```
+
+---
+
+### SELECT
+
+```javascript
+// All columns
+const result = await query.table('users').where({ active: 1 }).select().execute();
+
+// Specific columns
+const result = await query.table('users').select('id', 'name', 'email').execute();
+
+// With ORDER BY / GROUP BY / LIMIT
+const result = await query
+  .table('orders')
+  .where({ user_id: 42 })
+  .order_by('created_at DESC')
+  .limit(0, 20)
+  .select('id', 'total')
+  .execute();
+
+// FOR UPDATE (use inside a transaction)
+const result = await query.table('items').where({ id: 1 }).select().for_update().execute();
+```
+
+---
+
+### INSERT
+
+```javascript
+// Standard INSERT
+const result = await query
+  .table('users')
+  .insert({ name: 'Alice', email: 'alice@example.com', active: 1 })
+  .execute();
+console.log(result.affected); // 1
+console.log(result.insertId); // generated PK
+
+// INSERT IGNORE
+const result = await query
+  .table('users')
+  .insert({ email: 'bob@example.com' }, { ignore: true })
+  .execute();
+
+// Upsert — ON DUPLICATE KEY UPDATE
+const result = await query
+  .table('user_stats')
+  .insert({ user_id: 7, login_count: 1 })
+  .on('DUPLICATE', { login_count: '= login_count + 1' })
+  .execute();
+```
+
+---
+
+### UPDATE
+
+```javascript
+// Standard UPDATE
+const result = await query
+  .table('users')
+  .where({ id: 1 })
+  .update({ name: 'Bob', email: 'bob@example.com' })
+  .execute();
+console.log(result.affected); // number of rows changed
+
+// Arithmetic update — prefix value with =
+const result = await query
+  .table('accounts')
+  .where({ id: 1 })
+  .update({ balance: '= balance - 100' })
+  .execute();
+```
+
+---
+
+### DELETE
+
+```javascript
+const result = await query
+  .table('sessions')
+  .where({ user_id: 1 })
+  .delete()
+  .execute();
+console.log(result.affected);
+// → DELETE FROM sessions WHERE (user_id = 1)
+```
+
+> ⚠️ Calling `.delete()` without `.where()` returns an error query that rejects on `execute()`. (Safety guard)
+
+---
+
+### Modifiers
+
+| Method | Description |
+|--------|-------------|
+| `.order_by('col ASC')` | ORDER BY |
+| `.group_by('col')` | GROUP BY |
+| `.limit(count)` | Limit number of rows returned |
+| `.limit(offset, count)` | Limit with offset (pagination) |
+| `.for_update()` | Append `FOR UPDATE` to SELECT (transaction only) |
+| `.on(event, fields)` | Set `ON DUPLICATE KEY UPDATE` fields for INSERT |
+
+---
+
+### Sub-queries
+
+Pass a `MQQuery` instance directly as a table source. Build the sub-query inline on the same `query` object to avoid creating a separate variable — a separate instance could cause a memory leak since it holds its own connector reference.
+
+```javascript
+const query = await Database.singleton();
+
+// Build the sub-query inline on the same query instance
+const result = await query
+  .table('users', 'u')
+  .inner(
+    query.table('orders').where({ status: 'paid' }).select('user_id', 'SUM(total) AS revenue'),
+    'o',
+    { 'u.id': 'o.user_id' }
+  )
+  .select('u.name', 'o.revenue')
+  .execute();
+
+console.log(result.rows);
+```
+
+> ⚠️ Do **not** create a separate `sub` instance for sub-queries.  
+> A separate `MQQuery` instance retains its own connector reference and may cause a memory leak if not properly closed.  
+> Always compose sub-queries using the same `query` object.
+
+---
+
+## ResultSet
+
+When `execute()` resolves it returns a **ResultSet object**.  
+The available fields depend on the type of query.
+
+### SELECT — `result.rows`
+
+```javascript
+const result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+
+result.rows;           // full array of row objects
+result.rows[0];        // first row
+result.rows[0].schid;  // column value
+result.rows.length;    // row count
+
+// Example output:
+// [
+//   { stdid: 10, name: 'Alice', schid: 1 },
+//   ...
+// ]
+```
+
+Handling empty results:
+
+```javascript
+const result = await query.table('users').where({ id: 9999 }).select().execute();
+if (!result.rows || result.rows.length === 0) {
+  console.log('Not found');
+} else {
+  console.log(result.rows[0].name);
+}
+```
+
+---
+
+### INSERT / UPDATE / DELETE — `result.affected`
+
+```javascript
+// UPDATE
+const result = await query
+  .table('tbl_student')
+  .where({ stdid: 10 })
+  .update({ schid: 10 })
+  .execute();
+
+result.affected;  // number of rows changed
+
+// INSERT
+const result = await query
+  .table('users')
+  .insert({ name: 'Alice' })
+  .execute();
+
+result.affected;  // number of rows inserted
+result.insertId;  // generated auto-increment PK
+```
+
+---
+
+### ResultSet Field Reference
+
+| Field | Query Type | Description |
+|-------|------------|-------------|
+| `rows` | SELECT | Array of row objects. Empty result returns `[]`. |
+| `rows[n]` | SELECT | The nth row object. Column names are keys. |
+| `affected` | INSERT / UPDATE / DELETE | Number of rows affected |
+| `insertId` | INSERT | Auto-increment PK of the inserted row. `0` if no AI column. |
+
+---
+
+### Real-world Pattern — ResultSet inside a transaction
+
+```javascript
+const query = await Database.transaction('example', 'master');
+
+let result;
+
+// SELECT → read rows
+result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+console.log('select1:', result.rows);           // full array
+console.log('schid:',   result.rows[0].schid);  // column access
+
+// UPDATE → check affected
+result = await query.table('tbl_student').where({ stdid: 10 }).update({ schid: 10 }).execute();
+console.log('update1 affected:', result.affected);
+
+// SELECT again to verify the change
+result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+console.log('select2 schid:', result.rows[0].schid); // 10
+
+// Revert
+result = await query.table('tbl_student').where({ stdid: 10 }).update({ schid: 1 }).execute();
+console.log('update2 affected:', result.affected);
+
+result = await query.table('tbl_student').where({ stdid: 10 }).select().execute();
+console.log('select3 schid:', result.rows[0].schid); // 1
+
+await query.commit();
+```
+
+---
+
+## Oracle Driver
+
+Driver identifier: `'oracle'` (uses the `oracledb` package internally)
+
+### Installation
+
 ```bash
-yarn add querize
+npm install oracledb
+
+# For Thick mode, install Oracle Instant Client then call:
+oracledb.initOracleClient({ libDir: '/opt/oracle/instantclient_21_9' });
 ```
 
-### pnpm
-```bash
-pnpm add querize
+> **Thin vs Thick Mode**  
+> oracledb v6+ supports a pure-JS Thin mode that does not require Oracle Instant Client.  
+> Use Thick mode only when you need advanced features such as Advanced Queuing or LDAP authentication.
+
+---
+
+### Connection Option
+
+Oracle uses the `database` field for an Easy Connect string or TNS alias instead of a `host`/`port` pair.
+
+```javascript
+// Easy Connect
+const option = {
+  alias:           'main',
+  user:            'hr',
+  password:        'oracle',
+  connectString:   'localhost/XEPDB1',  // <host>/<service_name>
+  poolMax:          10,
+  poolMin:          0,
+  poolIncrement:    1,
+  poolTimeout:      30,
+  poolPingInterval: 10,
+};
+
+// TNS alias (requires tnsnames.ora or TNS_ADMIN env var)
+const option = {
+  alias:         'prod',
+  user:          'app_user',
+  password:      'secret',
+  connectString: 'PROD_DB',
+};
 ```
 
-## Quick Start (typescript)
+---
 
-```typescript
-import Querize from 'querize';
+### Usage Example
 
-// Create a database instance
-const querize = new Querize('mysql'); // or your preferred driver
-
-// Create a connection pool
-const database = await querize.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'mydb'
+```javascript
+const qz = new Querize('oracle');
+await qz.initialize({ libDir: '/oracle' }); // omit for Thin mode
+const Database = await qz.createPool({
+  alias: 'main', user: 'hr', password: 'oracle',
+  connectString: 'localhost/XEPDB1', poolMax: 10,
 });
 
-// Simple query
-const users = await database
-    .singleton()
-    .then(query => query
-        .table('users')
-        .where({'active' : 1})
-        .select('id', 'name', 'email')
-        .execute()
-    );
-
-```
-## Quick Start (javascript)
-
-```typescript
-const Querize = require('querize');
-
-// Create a database instance
-const querize = new Querize('mysql'); // or your preferred driver
-
-// Create a connection pool and query
-querize.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'mydb'
-})
-.then(function(database) {
-    return database.singleton()
-})
-.then(function(query) {
-    return query.table('users')
-    .where({'active' : 1})
-    .select('id', 'name', 'email')
-    .execute()
-});
-```
-
-## Connection Types
-
-### Single Connection
-- **Behavior**: Creates a new connection for each query and closes it immediately after execution.  
-- **Flow**:  
-  SQL → execute → connect → query → disconnect → SQL → ...
-- **Notes**: Very simple, but repeatedly opening and closing connections can cause performance overhead.
-```typescript
-const database = await querize.createConnect(options);
-```
-
-### Connection Pool
-- **Behavior**: Uses a connection pool where multiple queries can reuse existing connections.  
-- **Flow**:  
-  SQL → execute → connect → query → SQL → ...
-- **Notes**: More efficient for high-frequency queries since connections are reused instead of created and destroyed each time.
-```typescript
-const database = await querize.createPool(options);
-```
-
-### Cluster
-- **Behavior**: Manages multiple database instances and selectively connects to one depending on the query.  
-- **Flow**:  
-  SQL → execute → connect [choose DB] → query → SQL → ...
-- **Notes**: Useful in multi-database environments for load balancing or failover scenarios.
-```typescript
-const database = await querize.createCluster([option1, option2, ...]);
-```
-
-### Query-only (for Debug)
-- **Notes**: Method to inspect the SQL string of a query.
-```typescript
-const database = await querize.createQuery();
-```
-
-## Transaction Types
-
-### `Singleton`
-- **Behavior**: Each connection handles only a single SQL statement at a time.  
-- **Use case**: Simplifies query execution when only one statement per connection is required.
-
-### `Transaction`
-- **Behavior**: A single connection is used for multiple statements until an explicit `COMMIT` or `ROLLBACK` is executed.  
-- **Use case**: Ensures atomic operations and consistency across multiple queries.
-
-## Usage Examples
-
-### Basic Queries
-
-#### SELECT
-```typescript
-// Simple select
-const users = await database.singleton()
-    .then(q => q.table('users')
-        .select()
-        .execute());
-
-// Select with conditions
-const activeUsers = await database.singleton()
-    .then(q => q.table('users')
-        .where({
-            'active' : 1,
-            'created_at', "> '2023-01-01'"
-        })
-        .select('id', 'name', 'email')
-        .execute());
-
-// Select with joins
-const userPosts = await database.singleton()
-    .then(q => q.table('users', 'u')
-        .inner('posts', 'p', {'u.id = p.user_id'})
-        .select('u.name', 'p.title')
-        .execute());
-```
-
-#### INSERT
-```typescript
-const result = await database.singleton()
-    .then(q => q.table('users')
-        .insert({
-            name: 'John Doe',
-            email: 'john@example.com',
-            active: 1
-        })
-        .execute());
-
-// Insert with ON DUPLICATE KEY UPDATE
-const result = await database.singleton()
-    .then(q => q.table('users')
-        .insert({
-            name: 'John Doe',
-            email: 'john@example.com'
-        }, { ignore: false })
-        .on('DUPLICATE', { updated_at: new Date() })
-        .execute());
-```
-
-#### UPDATE
-```typescript
-const result = await database.singleton()
-    .then(q => q.table('users')
-        .where({'id' : 1})
-        .update({
-            name: 'Jane Doe',
-            updated_at: new Date()
-        }));
-```
-
-#### DELETE
-```typescript
-const result = await database.singleton()
-    .then(q => q.table('users')
-        .where({'active' : 0})
-        .delete());
-```
-
-### Advanced Features
-
-#### Transactions
-```typescript
-const transaction = await database.transaction();
-
-try {
-    await transaction.table('users')
-        .insert({ name: 'John', email: 'john@example.com' })
-        .execute();
-    
-    await transaction.table('user_profiles')
-        .insert({ user_id: 1, bio: 'Hello world' })
-        .execute();
-    
-    await transaction.commit();
-} catch (error) {
-    await transaction.rollback();
-    throw error;
-}
-```
-
-#### Subqueries
-```typescript
-const query = await database.singleton()
-const result = await query.table('users')
-.left('order', query.table('orders')
-    .where({'status' : 'completed'})
-    .select('user_id'), {
-        'order.user_id' : '= users.id'
-    }
-)
-.where({'id' : 'john'})
-.select()
-.execute();
-```
-
-#### Joins
-```typescript
-const result = await query.table('users', 'u')
-.left('profiles', 'p', {'u.id = p.user_id'})
-.right('settings', 's', {'u.id = s.user_id'})
-.select('u.name', 'p.bio', 's.theme')
-.execute();
-```
-
-#### Grouping and Ordering
-```typescript
-const stats = await query.table('orders')
-.group_by('status')
-.order_by('count DESC')
-.select('status', 'COUNT(*) as count')
-.execute();
-```
-
-#### Pagination
-```typescript
-// Limit only
-const recent = await query.table('posts')
-.order_by('created_at DESC')
-.limit(10)
-.select()
-.execute();
-
-// Offset and limit
-const page2 = await query.table('posts')
-.order_by('created_at DESC')
-.limit(10, 10) // offset 10, limit 10
-.select()
-.execute();
-```
-
-#### Database Locking
-```typescript
-const query = await database.transaction();
-
-try {
-    // Acquire lock
-    await query.lock('user_update', 30); // 30 second timeout
-    
-    // Do critical operations
-    await query.table('users')
-        .where('id', 1)
-        .update({ balance: 1000 })
-        .execute();
-    
-    // Release lock
-    await query.unlock('user_update');
-    
-    await query.commit();
-} catch (error) {
-    await query.rollback();
-}
-```
-
-## Configuration
-
-### Database Options
-```typescript
-interface MQOption {
-    host: string;
-    port?: number;
-    user: string;
-    password: string;
-    database: string;
-    charset?: string;
-    timeout?: number;
-    // ... other driver-specific options
-}
-```
-
-### Debugging
-Enable query logging:
-```typescript
-import { setTrace } from 'querize';
-
-setTrace((message) => {
-    console.log('[Querize]', message);
-});
-```
-
-## Error Handling
-
-```typescript
-try {
-    const result = await database.singleton()
-        .then(q => q.table('users')
-            .select()
-            .execute());
-} catch (error) {
-    console.error('Query failed:', error);
-}
-```
-
-# Query Builder – `where()`
-
-The `where()` method is used to build **SQL WHERE conditions** in a declarative way.
-It accepts **objects** or **arrays of objects** as input and supports `AND` / `OR` composition.
-You can also use `query.literal()` to safely insert raw SQL fragments when necessary.
-
----
-
-## Signature
-
-```ts
-where(...clauses: (object | object[])[]): MQWhere
-
-// Start a grouped condition
-query.where(...clauses: (object | object[])[]): MQWhere
-
-// Add OR conditions to a group
-MQWhere.or(...clauses: (object | object[])[]): MQWhere
+const query = await Database.singleton();
+const result = await query.table('EMPLOYEES').where({ DEPARTMENT_ID: 90 }).select().execute();
+console.log(result.rows);
 ```
 
 ---
 
-## Value Rules
+### Oracle-specific Notes
 
-* **Single value** → equals (`=`)
+**Table and column names are UPPERCASE by default** (Oracle default behavior)
 
-  ```js
-  .where({ user_id: 1 }) // user_id = 1
-  ```
-* **Operator string** → used as-is
-  (`"> 0"`, `"<>'H'"`, `"= other.col"`)
-
-  ```js
-  .where({ amount: '> 1000' }) // amount > 1000
-  ```
-* **Array** → `IN (...)`
-
-  ```js
-  .where({ status: ['ACTIVE', 'INACTIVE'] }) // status IN ('ACTIVE','INACTIVE')
-  ```
-* **Array + literal** → multiple alternatives (e.g., including `NULL`)
-
-  ```js
-  .where({ account_id: [123, query.literal('IS NULL')] })
-  // account_id = 123 OR account_id IS NULL
-  ```
-* **`query.literal(sql)`** → raw SQL fragment (for LIKE, IS NULL, etc.)
-
----
-
-## Combination Rules
-
-* Multiple arguments → **AND**
-
-  ```js
-  .where({ a: 1 }, { b: 2 }) // a=1 AND b=2
-  ```
-
-* Fields in an object → **AND**
-
-  ```js
-  .where({ a: 1, b: 2 }) // a=1 AND b=2
-  ```
-
-* Array of objects → **OR**
-
-  ```js
-  .where([{ a: 1 }, { b: 2 }]) // (a=1 OR b=2)
-  ```
-
----
-
-## Examples
-
-### Equality
-
-```js
-.where({ user_id: 100 }) // user_id = 100
+```javascript
+query.table('EMPLOYEES').where({ DEPARTMENT_ID: 10 }).select('FIRST_NAME', 'SALARY')
 ```
 
-### Date range
+**DUAL table**
 
-```js
-.where(
-  { created_at: '>= "2025-01-01"' },
-  { created_at: '<= "2025-01-31"' },
-) // created_at >= "2025-01-01" AND created_at <= "2025-01-31"
+```javascript
+const result = await query.table('DUAL').select('SYSDATE').execute();
+// → SELECT SYSDATE FROM DUAL
 ```
 
-### Allow NULL
+**Pagination** — `.limit()` is not supported in Oracle; use raw SQL
 
-```js
-.where({ account_id: [body.account_id, query.literal('IS NULL')] })
-// account_id = '...' OR account_id IS NULL
-```
-
-### OR group
-
-```js
-.where([
-  { account_type: 'SAVINGS' },
-  { account_type: 'ASSET' },
-])
-// account_type = 'SAVINGS' OR account_type = 'ASSET'
-```
-
-### LIKE search
-
-```js
-.where([
-  { title: query.literal("LIKE '%keyword%'") },
-  { memo : query.literal("LIKE '%keyword%'") },
-])
-// title LIKE '%keyword%' OR memo LIKE '%keyword%'
-```
-
-### Group + OR extension
-
-```js
-let dateRange = query.where(
-  { t.date: '>= "2025-01-01"' },
-  { t.date: '<= "2025-01-31"' },
+```javascript
+// Oracle 12c+
+const result = await Database.query(
+  'SELECT * FROM EMPLOYEES ORDER BY EMPLOYEE_ID FETCH FIRST 20 ROWS ONLY'
 );
 
-// Include overlapping installment period
-dateRange = dateRange.or({
-  t.date   : '<= "2025-01-31"',
-  t.end_date: '>= "2025-01-01"',
+// Oracle 11g and below
+const result = await Database.query(
+  'SELECT * FROM (SELECT * FROM EMPLOYEES ORDER BY EMPLOYEE_ID) WHERE ROWNUM <= 20'
+);
+```
+
+**SEQUENCE (auto-increment substitute)**
+
+```javascript
+const result = await query.table('ORDERS').insert({
+  ORDER_ID: query.literal('ORDER_SEQ.NEXTVAL'),
+  STATUS:   'NEW',
+  USER_ID:  42,
+}).execute();
+```
+
+**Oracle ResultSet field differences**
+
+| Field | Description |
+|-------|-------------|
+| `rows` | SELECT result array (same shape as mysql2) |
+| `affected` | INSERT/UPDATE/DELETE affected row count (mapped from `rowsAffected`) |
+| `insertId` | Oracle ROWID string of the inserted row (mapped from `lastRowid`) |
+
+---
+
+## Trace / Logging
+
+```javascript
+import { Querize } from 'querize';
+
+Querize.setTrace((level, tag, msg) => {
+  console.log(`[${level}] ${tag}: ${msg}`);
 });
-// (t.date >= "2025-01-01" AND t.date <= "2025-01-31")
-// OR 
-// (t.date <= "2025-01-31" AND t.end_date >= "2025-01-01")
+// level: 'log' | 'err' | 'sql'
 ```
 
 ---
 
-## Full Example – **Monthly Transaction List**
+## Connection Mode Summary
 
-```js
-query.table('transactions', 't')
- .left('accounts', 'a', {
-   'a.user_id'     : req.session.user_id,
-   'a.account_id'  : '= t.account_id',
-   'a.account_type': ['SAVINGS','ASSET'],
- })
- .where(
-   // User condition
-   { 't.user_id': req.session.user_id },
-
-   // Date range
-   { 't.date': '>= "2025-01-01"' },
-   { 't.date': '<= "2025-01-31"' },
-
-   // Account check (include NULL)
-   {
-     'a.account_id'  : ['= t.account_id', query.literal('IS NULL')],
-     'a.account_type': ['SAVINGS','ASSET', query.literal('IS NULL')],
-   },
- )
- .order_by('t.date', 't.time', 't.description')
- .select([
-   'a.account_name   AS Account',
-   't.currency       AS Currency',
-   't.amount         AS Amount',
-   't.description    AS Description',
-   't.date           AS Date',
-   't.time           AS Time',
-   't.category_code  AS CategoryCode',
-   't.memo           AS Memo',
- ])
- .execute();
-```
-
-```sql
-SELECT 
-  a.account_name AS Account, 
-  t.currency AS Currency, 
-  t.amount AS Amount, 
-  t.description AS Description, 
-  t.date AS Date, 
-  t.time AS Time, 
-  t.category_code AS CategoryCode, 
-  t.memo AS Memo 
-FROM 
-  transactions AS t 
-  LEFT OUTER JOIN accounts AS a ON (
-    a.user_id = 'tester' AND a.account_id = t.account_id 
-    AND (a.account_type = 'SAVINGS' OR a.account_type = 'ASSET')
-  ) 
-WHERE 
-  (
-    (t.user_id = 'tester') 
-    AND (t.date >= "2025-01-01") 
-    AND (t.date <= "2025-01-31") 
-    AND (
-      (a.account_id = t.account_id OR a.account_id IS NULL) 
-      AND (
-        a.account_type = 'SAVINGS' OR a.account_type = 'ASSET' OR a.account_type IS NULL
-      )
-    )
-  ) 
-ORDER BY 
-  t.date, 
-  t.time, 
-  t.description
-```
+| Mode | Connection Handling | Best For |
+|------|---------------------|----------|
+| `createConnect` | New TCP connection per operation | Scripts, CLIs, migrations |
+| `createPool` | Reusable connection pool | Web servers, APIs (recommended default) |
+| `createCluster` | Multiple pools as one object | Read/write splitting, HA setups |
+| `transaction()` | Dedicated connection + BEGIN | Multi-statement atomicity |
+| `singleton()` | Acquire → execute → release per call | Independent single queries |
 
 ---
-
-## Quick Reference
-
-| Pattern         | Example                             | SQL Result               |
-| --------------- | ----------------------------------- | ------------------------ |
-| Single value    | `{ col: 1 }`                        | `col = 1`                |
-| Operator string | `{ amt: '> 0' }`                    | `amt > 0`                |
-| IN              | `{ type: ['S','A'] }`               | `type IN ('S','A')`      |
-| NULL include    | `{ k: [val, literal('IS NULL')] }`  | `k=val OR k IS NULL`     |
-| LIKE            | `{ memo: literal("LIKE '%foo%'") }` | `memo LIKE '%foo%'`      |
-| OR group        | `where([{A}, {B}])`                 | `(A OR B)`               |
-| Group OR        | `where({A}).or({B}, [{C},{D}])`     | `(A) OR (B) OR (C OR D)` |
-
----
-
-## Best Practices
-
-* Use **objects and arrays** as much as possible for clarity.
-* Reserve `query.literal()` only for cases that **cannot be expressed as values** (e.g., `LIKE`, `IS NULL`, functions).
-* Always prefer **date range queries** (`>= start AND <= end`) for better index usage.
-* Use **object arrays** for OR conditions to keep code clean.
-
-
-
-
-
-## Best Practices
-
-1. **Always use transactions for multiple related operations**
-2. **Clean up connections when done**
-3. **Use connection pools for better performance**
-4. **Handle errors appropriately**
-5. **Use parameterized queries to prevent SQL injection**
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Support
-
-For issues and questions, please use the [GitHub Issues](https://github.com/itfin-git/Querize/issues) page.
+MIT © 2020 lClasser — [Querize](https://github.com/itfin-git/Querize)

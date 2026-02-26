@@ -13,21 +13,6 @@ import {MQConst}    from '../mq_const.js';
 
 export namespace MQDriver
 {
-    /*
-    export interface Option {
-        alias : string,         // transaction,singleton 시 찾을 이름
-        host : string,          // DB ip
-        user : string,          // DB user
-        password : string,      // DB password
-        database : string,      // DB database
-        dateStrings? : boolean,
-        checkDuplicate? : boolean,
-        compress? : boolean,
-        supportBigNumbers? : boolean,
-        bigNumberStrings? : boolean,
-        connectionLimit? : number,
-    }; */
-
     export interface Container {
         getType(): MQConst.CONNECTION,
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector>,
@@ -40,6 +25,12 @@ export namespace MQDriver
         rollback : () => Promise<any>,
         query : (sql: string) => Promise<any>,
         close : () => Promise<any>,
+    };
+    export interface ResultSet {
+        insertId?: any;     // 
+        affected: number;   // INSERT, UPDATE, DELETE 영향 받은 행 수
+        rows: any[];        // SELECT 결과 (항상 객체 배열 형태)
+        meta: any;          // 원본 드라이버 결과 (필요 시 대비)
     };
 
     async function bring(name: string) {
