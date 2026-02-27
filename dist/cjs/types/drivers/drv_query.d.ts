@@ -1,7 +1,7 @@
 import { MQDriver } from './index';
 import { MQConst } from '../mq_const.js';
 export declare namespace DrvQuery {
-    function create(type: MQConst.CONNECTION, config: any): Promise<Container>;
+    function create(type: MQConst.CONNECTION, config: any, option?: any): Promise<Container>;
     class Container implements MQDriver.Container {
         type: MQConst.CONNECTION;
         constructor(type: MQConst.CONNECTION);

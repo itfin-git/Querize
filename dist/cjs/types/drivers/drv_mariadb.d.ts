@@ -17,7 +17,7 @@ export declare namespace DrvMariaDB {
         bigNumberStrings: boolean;
         connectionLimit: number;
     };
-    export function create(type: MQConst.CONNECTION, config: any): Promise<Container>;
+    export function create(type: MQConst.CONNECTION, config: any, option?: any): Promise<Container>;
     export class Container implements MQDriver.Container {
         pool: TypeContainer | null;
         type: MQConst.CONNECTION;

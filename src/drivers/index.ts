@@ -51,14 +51,14 @@ export namespace MQDriver
         });
     }
 
-    export function create(type: MQConst.CONNECTION, driver: string, config?: any): Promise<MQDriver.Container> {
+    export function create(type: MQConst.CONNECTION, driver: string, config?: any, option?: any): Promise<MQDriver.Container> {
         // console.log("type  :", type);
         // console.log("driver:", driver);
         // console.log("config:", config);
         return bring(driver).then(function(library) {
             // console.log("library;", library);
             let nmsp = Object.keys(library)[0];
-            return library[nmsp].create(type, config);
+            return library[nmsp].create(type, config, option);
         });
     }
 };

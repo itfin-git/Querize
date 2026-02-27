@@ -14,7 +14,7 @@ exports.DrvQuery = void 0;
 const mq_trace_js_1 = require("../mq_trace.js");
 var DrvQuery;
 (function (DrvQuery) {
-    function create(type, config) {
+    function create(type, config, option) {
         return Promise.resolve(new Container(type));
     }
     DrvQuery.create = create;

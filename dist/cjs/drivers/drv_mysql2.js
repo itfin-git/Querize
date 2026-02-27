@@ -36,7 +36,7 @@ var DrvMySQL;
     }
     DrvMySQL.generateConfig = generateConfig;
     var _tid = 0;
-    function create(type, config) {
+    function create(type, config, option) {
         let toid = ++_tid;
         switch (type) {
             case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
@@ -51,8 +51,8 @@ var DrvMySQL;
                     if (Array.isArray(config) != true) {
                         config = [config];
                     }
-                    config.forEach(function (option) {
-                        cluster.add(option.alias, option);
+                    config.forEach(function (citem) {
+                        cluster.add(citem.alias, citem);
                     });
                     return new Container(cluster, mq_const_js_1.MQConst.CONNECTION.CLUSTER);
                 });
@@ -134,14 +134,20 @@ var DrvMySQL;
                     return {
                         affected: 0,
                         rows: data,
-                        meta: result
+                        meta: result,
+                        isEmpty: function () {
+                            return (result == null || result.length <= 0) ? true : false;
+                        },
                     };
                 }
                 return {
                     affected: data.affectedRows || 0,
                     insertId: data.insertId,
                     rows: [],
-                    meta: result
+                    meta: result,
+                    isEmpty: function () {
+                        return (result == null || result.length <= 0) ? true : false;
+                    },
                 };
             });
         }

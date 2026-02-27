@@ -62,7 +62,7 @@ var DrvOracleDB;
     }
     DrvOracleDB.initialize = initialize;
     var _tid = 0;
-    function create(type, config) {
+    function create(type, config, option) {
         let toid = ++_tid;
         switch (type) {
             case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
@@ -76,7 +76,9 @@ var DrvOracleDB;
                         return oracledb_1.default.createPool(cfg);
                     }))
                         .then(function (Pools) {
-                        return new Container(Pools, mq_const_js_1.MQConst.CONNECTION.POOLER);
+                        const container = new Container(Pools, mq_const_js_1.MQConst.CONNECTION.POOLER);
+                        container.setDefaultDatabase(option.defaultDatabase);
+                        return container;
                     });
                 }
                 return oracledb_1.default.createPool(config)
@@ -104,6 +106,7 @@ var DrvOracleDB;
         getType() { return this.type; }
         getConnection(dbname, dbmode) {
             var self = this;
+            dbname = dbname || self.dbname;
             switch (this.type) {
                 case mq_const_js_1.MQConst.CONNECTION.CONNECTER:
                     return oracledb_1.default.getConnection(this.config).then(function (conn) {
@@ -136,6 +139,9 @@ var DrvOracleDB;
             }
             return Promise.resolve();
         }
+        setDefaultDatabase(dbname) {
+            this.dbname = dbname;
+        }
     }
     DrvOracleDB.Container = Container;
     var _cid = 0;
@@ -163,6 +169,9 @@ var DrvOracleDB;
                     affected: result.rowsAffected || 0,
                     rows: result.rows || [], // oracledb.OUT_FORMAT_OBJECT 설정 필수
                     meta: result,
+                    isEmpty: function () {
+                        return (result.rows == null || result.rows.length <= 0) ? true : false;
+                    },
                 };
             });
         }

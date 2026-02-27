@@ -15,7 +15,7 @@ import {MQTrace}    from '../mq_trace.js';
 
 export namespace DrvQuery
 {
-    export function create(type: MQConst.CONNECTION, config: any) : Promise<Container> {
+    export function create(type: MQConst.CONNECTION, config: any, option?: any) : Promise<Container> {
         return Promise.resolve(new Container(type));
     }
 

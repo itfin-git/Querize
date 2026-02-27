@@ -12,7 +12,7 @@
 import { MQTrace } from '../mq_trace.js';
 export var DrvQuery;
 (function (DrvQuery) {
-    function create(type, config) {
+    function create(type, config, option) {
         return Promise.resolve(new Container(type));
     }
     DrvQuery.create = create;

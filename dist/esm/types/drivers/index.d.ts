@@ -18,8 +18,9 @@ export declare namespace MQDriver {
         affected: number;
         rows: any[];
         meta: any;
+        isEmpty(): boolean;
     }
     function invokeFunction(driver: string, name: string, args?: any): Promise<any>;
-    function create(type: MQConst.CONNECTION, driver: string, config?: any): Promise<MQDriver.Container>;
+    function create(type: MQConst.CONNECTION, driver: string, config?: any, option?: any): Promise<MQDriver.Container>;
 }
 //# sourceMappingURL=index.d.ts.map

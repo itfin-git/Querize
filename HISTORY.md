@@ -1,3 +1,9 @@
+1.1.4 / 2026-02-27
+* Added an option argument to the createPool function
+    createPool(config, option : {
+        defaultDatabase : 'Default database for singleton and transaction contexts'
+    })
+
 1.1.3 / 2026-02-27
 ========================
 * Add isEmpty() to ResultSet

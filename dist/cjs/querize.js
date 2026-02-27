@@ -33,26 +33,26 @@ class Querize {
             return new mq_database_js_1.MQDatabase.Class(container);
         });
     }
-    createConnect(option) {
+    createConnect(config) {
         mq_trace_js_1.MQTrace.log(`CONNECTER: create.`);
-        if (Array.isArray(option)) {
+        if (Array.isArray(config)) {
             return Promise.reject(new Error('createConnect only 1-connection.'));
         }
-        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.CONNECTER, this.driver, option)
+        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.CONNECTER, this.driver, config)
             .then(function (container) {
             return new mq_database_js_1.MQDatabase.Class(container);
         });
     }
-    createPool(option) {
+    createPool(config, option) {
         mq_trace_js_1.MQTrace.log(`POOLER: create.`);
-        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.POOLER, this.driver, option)
+        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.POOLER, this.driver, config, option)
             .then(function (container) {
             return new mq_database_js_1.MQDatabase.Class(container);
         });
     }
-    createCluster(option) {
+    createCluster(config) {
         mq_trace_js_1.MQTrace.log(`CLUSTER: create.`);
-        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.CLUSTER, this.driver, option)
+        return index_js_1.MQDriver.create(mq_const_js_1.MQConst.CONNECTION.CLUSTER, this.driver, config)
             .then(function (container) {
             return new mq_database_js_1.MQDatabase.Class(container);
         });

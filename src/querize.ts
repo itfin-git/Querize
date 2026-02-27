@@ -37,32 +37,32 @@ export class Querize {
         });
     }
 
-    createConnect(option : any): Promise<MQDatabase.Class> {
+    createConnect(config : any): Promise<MQDatabase.Class> {
         MQTrace.log(`CONNECTER: create.`);
 
-        if( Array.isArray(option) ) {
+        if( Array.isArray(config) ) {
             return Promise.reject(new Error('createConnect only 1-connection.'));
         }
 
-        return MQDriver.create(MQConst.CONNECTION.CONNECTER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.CONNECTER, this.driver, config)
         .then(function(container) {
             return new MQDatabase.Class(container);
         });
     }
 
-    createPool(option : any): Promise<MQDatabase.Class> {
+    createPool(config : any, option?: any): Promise<MQDatabase.Class> {
         MQTrace.log(`POOLER: create.`);
 
-        return MQDriver.create(MQConst.CONNECTION.POOLER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.POOLER, this.driver, config, option)
         .then(function(container) {
             return new MQDatabase.Class(container);
         });
     }
 
-    createCluster(option : any): Promise<MQDatabase.Class> {
+    createCluster(config : any): Promise<MQDatabase.Class> {
         MQTrace.log(`CLUSTER: create.`);
 
-        return MQDriver.create(MQConst.CONNECTION.CLUSTER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.CLUSTER, this.driver, config)
         .then(function(container) {
             return new MQDatabase.Class(container);
         });

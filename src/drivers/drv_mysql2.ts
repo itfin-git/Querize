@@ -36,7 +36,7 @@ export namespace DrvMySQL
     }
 
     var _tid: number = 0;
-    export function create(type: MQConst.CONNECTION, config: any): Promise<Container> {
+    export function create(type: MQConst.CONNECTION, config: any, option?: any): Promise<Container> {
         let toid = ++_tid;
         switch( type ) {
         case MQConst.CONNECTION.CONNECTER:
@@ -53,8 +53,8 @@ export namespace DrvMySQL
                 if( Array.isArray(config) != true ) {
                     config = [config];
                 }
-                config.forEach(function(option: any) {
-                    cluster.add(option.alias, option);
+                config.forEach(function(citem: any) {
+                    cluster.add(citem.alias, citem);
                 });
                 return new Container(cluster, MQConst.CONNECTION.CLUSTER);
             });

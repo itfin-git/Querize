@@ -31,7 +31,7 @@ export var DrvMariaDB;
     }
     DrvMariaDB.generateConfig = generateConfig;
     var _tid = 0;
-    function create(type, config) {
+    function create(type, config, option) {
         let toid = ++_tid;
         switch (type) {
             case MQConst.CONNECTION.CONNECTER:
@@ -46,8 +46,8 @@ export var DrvMariaDB;
                     if (Array.isArray(config) != true) {
                         config = [config];
                     }
-                    config.forEach(function (option) {
-                        cluster.add(option.alias, option);
+                    config.forEach(function (citem) {
+                        cluster.add(citem.alias, citem);
                     });
                     return new Container(cluster, MQConst.CONNECTION.CLUSTER);
                 });
@@ -134,6 +134,9 @@ export var DrvMariaDB;
                         affected: 0,
                         rows: result || [],
                         meta: result,
+                        isEmpty: function () {
+                            return (result == null || result.length <= 0) ? true : false;
+                        },
                     };
                 }
                 // DML(INSERT, UPDATE, DELETE) 결과인 경우 (ResultSetHeader 객체)
@@ -142,6 +145,9 @@ export var DrvMariaDB;
                     insertId: result.insertId,
                     rows: [],
                     meta: result,
+                    isEmpty: function () {
+                        return (result == null || result.length <= 0) ? true : false;
+                    },
                 };
             });
         }

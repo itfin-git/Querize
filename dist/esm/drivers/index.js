@@ -30,14 +30,14 @@ export var MQDriver;
         });
     }
     MQDriver.invokeFunction = invokeFunction;
-    function create(type, driver, config) {
+    function create(type, driver, config, option) {
         // console.log("type  :", type);
         // console.log("driver:", driver);
         // console.log("config:", config);
         return bring(driver).then(function (library) {
             // console.log("library;", library);
             let nmsp = Object.keys(library)[0];
-            return library[nmsp].create(type, config);
+            return library[nmsp].create(type, config, option);
         });
     }
     MQDriver.create = create;

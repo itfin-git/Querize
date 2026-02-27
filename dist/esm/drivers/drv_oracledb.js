@@ -57,7 +57,7 @@ export var DrvOracleDB;
     }
     DrvOracleDB.initialize = initialize;
     var _tid = 0;
-    function create(type, config) {
+    function create(type, config, option) {
         let toid = ++_tid;
         switch (type) {
             case MQConst.CONNECTION.CONNECTER:
@@ -71,7 +71,9 @@ export var DrvOracleDB;
                         return OracleDB.createPool(cfg);
                     }))
                         .then(function (Pools) {
-                        return new Container(Pools, MQConst.CONNECTION.POOLER);
+                        const container = new Container(Pools, MQConst.CONNECTION.POOLER);
+                        container.setDefaultDatabase(option.defaultDatabase);
+                        return container;
                     });
                 }
                 return OracleDB.createPool(config)
@@ -88,6 +90,7 @@ export var DrvOracleDB;
         pools;
         type;
         config;
+        dbname;
         constructor(pool, type, config) {
             if (Array.isArray(pool)) {
                 this.pool = null;
@@ -103,6 +106,7 @@ export var DrvOracleDB;
         getType() { return this.type; }
         getConnection(dbname, dbmode) {
             var self = this;
+            dbname = dbname || self.dbname;
             switch (this.type) {
                 case MQConst.CONNECTION.CONNECTER:
                     return OracleDB.getConnection(this.config).then(function (conn) {
@@ -135,6 +139,9 @@ export var DrvOracleDB;
             }
             return Promise.resolve();
         }
+        setDefaultDatabase(dbname) {
+            this.dbname = dbname;
+        }
     }
     DrvOracleDB.Container = Container;
     var _cid = 0;
@@ -166,6 +173,9 @@ export var DrvOracleDB;
                     affected: result.rowsAffected || 0,
                     rows: result.rows || [], // oracledb.OUT_FORMAT_OBJECT 설정 필수
                     meta: result,
+                    isEmpty: function () {
+                        return (result.rows == null || result.rows.length <= 0) ? true : false;
+                    },
                 };
             });
         }

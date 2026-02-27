@@ -31,26 +31,26 @@ export class Querize {
             return new MQDatabase.Class(container);
         });
     }
-    createConnect(option) {
+    createConnect(config) {
         MQTrace.log(`CONNECTER: create.`);
-        if (Array.isArray(option)) {
+        if (Array.isArray(config)) {
             return Promise.reject(new Error('createConnect only 1-connection.'));
         }
-        return MQDriver.create(MQConst.CONNECTION.CONNECTER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.CONNECTER, this.driver, config)
             .then(function (container) {
             return new MQDatabase.Class(container);
         });
     }
-    createPool(option) {
+    createPool(config, option) {
         MQTrace.log(`POOLER: create.`);
-        return MQDriver.create(MQConst.CONNECTION.POOLER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.POOLER, this.driver, config, option)
             .then(function (container) {
             return new MQDatabase.Class(container);
         });
     }
-    createCluster(option) {
+    createCluster(config) {
         MQTrace.log(`CLUSTER: create.`);
-        return MQDriver.create(MQConst.CONNECTION.CLUSTER, this.driver, option)
+        return MQDriver.create(MQConst.CONNECTION.CLUSTER, this.driver, config)
             .then(function (container) {
             return new MQDatabase.Class(container);
         });

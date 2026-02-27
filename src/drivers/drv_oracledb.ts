@@ -64,7 +64,7 @@ export namespace DrvOracleDB
     }
 
     var _tid: number = 0;
-    export function create(type: MQConst.CONNECTION, config: any): Promise<Container> {
+    export function create(type: MQConst.CONNECTION, config: any, option?: any): Promise<Container> {
         let toid = ++_tid;
         switch( type ) {
         case MQConst.CONNECTION.CONNECTER:
@@ -78,7 +78,9 @@ export namespace DrvOracleDB
                     return OracleDB.createPool(cfg);
                 }))
                 .then(function(Pools) {
-                    return new Container(Pools, MQConst.CONNECTION.POOLER);
+                    const container = new Container(Pools, MQConst.CONNECTION.POOLER);
+                    container.setDefaultDatabase(option.defaultDatabase);
+                    return container;
                 });
             }
 
@@ -96,6 +98,7 @@ export namespace DrvOracleDB
         pools: TypeContainer[] | null;
         type: MQConst.CONNECTION;
         config?: any;
+        dbname?: string;
 
         constructor(pool: TypeContainer | TypeContainer[] | null, type: MQConst.CONNECTION, config?: any) {
             if( Array.isArray(pool) ) {
@@ -113,6 +116,7 @@ export namespace DrvOracleDB
         getType() { return this.type; }
         getConnection(dbname?: string, dbmode?: string): Promise<MQDriver.Connector> {
             var self = this;
+            dbname = dbname || self.dbname;
             switch( this.type ) {
             case MQConst.CONNECTION.CONNECTER:
                 return OracleDB.getConnection(this.config as OracleDB.PoolAttributes).then(function(conn) {
@@ -145,6 +149,10 @@ export namespace DrvOracleDB
                 break;
             }
             return Promise.resolve();
+        }
+
+        setDefaultDatabase(dbname: string) {
+            this.dbname = dbname;
         }
     }
 
