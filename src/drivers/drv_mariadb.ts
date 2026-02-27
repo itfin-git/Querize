@@ -146,6 +146,9 @@ export namespace DrvMariaDB
                         affected: 0,
                         rows: result || [],
                         meta: result,
+                        isEmpty: function() {
+                            return (result == null || result.length <= 0) ? true : false;
+                        },
                     };
                 }
 
@@ -155,6 +158,9 @@ export namespace DrvMariaDB
                     insertId: result.insertId,
                     rows: [],
                     meta: result,
+                    isEmpty: function() {
+                        return (result == null || result.length <= 0) ? true : false;
+                    },
                 };
             });
         }

@@ -27,10 +27,11 @@ export namespace MQDriver
         close : () => Promise<any>,
     };
     export interface ResultSet {
-        insertId?: any;     // 
+        insertId?: any;     // 마지막 AUTO_INCREMENT or LAST_INSERT_ID()
         affected: number;   // INSERT, UPDATE, DELETE 영향 받은 행 수
         rows: any[];        // SELECT 결과 (항상 객체 배열 형태)
         meta: any;          // 원본 드라이버 결과 (필요 시 대비)
+        isEmpty(): boolean;
     };
 
     async function bring(name: string) {

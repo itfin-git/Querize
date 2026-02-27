@@ -183,6 +183,9 @@ export namespace DrvOracleDB
                     affected: result.rowsAffected || 0,
                     rows: result.rows || [], // oracledb.OUT_FORMAT_OBJECT 설정 필수
                     meta: result,
+                    isEmpty: function() {
+                        return (result.rows == null || result.rows.length <= 0) ? true : false;
+                    },
                 };
             });
         }

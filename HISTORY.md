@@ -1,6 +1,10 @@
+1.1.3 / 2026-02-27
+========================
+* Add isEmpty() to ResultSet
+
 1.1.2 / 2026-02-26
 ========================
-* select 의 argument 를 1차원 배열로 만들어 처리
+* Handle select arguments as a one-dimensional array
 
 1.1.1 / 2026-02-26
 ========================

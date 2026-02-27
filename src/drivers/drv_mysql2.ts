@@ -147,14 +147,20 @@ export namespace DrvMySQL
                     return {
                         affected: 0,
                         rows: data,
-                        meta: result
+                        meta: result,
+                        isEmpty: function() {
+                            return (result == null || result.length <= 0) ? true : false;
+                        },
                     };
                 }
                 return {
                     affected: data.affectedRows || 0,
                     insertId: data.insertId,
                     rows: [],
-                    meta: result
+                    meta: result,
+                    isEmpty: function() {
+                        return (result == null || result.length <= 0) ? true : false;
+                    },
                 };
             });
         }
